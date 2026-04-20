@@ -72,15 +72,23 @@ xray-redirect [help] down <interfaz>
   Ejemplos: sudo z-panel xray-redirect up xray2tun
 
 `,
-		"ufw.want_check": "se esperaba: z-panel ufw check …", "ufw.help": `ufw [help] check [--lan-cidr=CIDR] [--lan-dev=DEV] [interfaz]
+		"ufw.want_check": "se esperaba: z-panel ufw check …", "ufw.want_subcmd": "se esperaba: ufw check … o ufw masq-check <iface>",
+		"ufw.help": `ufw [help] check [--lan-cidr=CIDR] [--lan-dev=DEV] [interfaz]
   Reglas UFW con etiqueta %s. Plantillas: --lan-cidr (def. %s), --lan-dev (%s).
 
+ufw [help] masq-check [--lan-cidr=CIDR] <interfaz>
+  Busca MASQUERADE/SNAT POSTROUTING con -o <interfaz> (iptables-save). Si falta, sugiere línea en before.rules. CIDR LAN por defecto %s.
+
 `,
+		"ufw.masq.verdict_ok": "ESTADO: OK — hay MASQUERADE/SNAT en POSTROUTING para -o %s (%d regla(s)).", "ufw.masq.detail_heading": "Líneas (iptables-save -t nat):", "ufw.masq.verdict_missing": "ESTADO: FALTA — no hay POSTROUTING MASQUERADE/SNAT con -o %s en nat.\n",
+		"ufw.masq.hint_add": "Línea sugerida (junto a otros MASQUERADE), luego: sudo ufw reload\n\n-A POSTROUTING -s %s -o %s -j MASQUERADE\n",
+		"ufw.masq.iptables_cmd": "iptables-save -t nat", "ufw.masq.want_iface": "masq-check: una interfaz (ej. z-panel ufw masq-check xray2tun)",
 		"ufw.err.lan_cidr_empty": "--lan-cidr: vacío", "ufw.err.lan_cidr_need": "valor tras --lan-cidr",
 		"ufw.err.lan_dev_empty": "--lan-dev: vacío", "ufw.err.lan_dev_need": "valor tras --lan-dev",
 		"ufw.err.unknown_flag": "flag desconocido: %s", "ufw.err.too_many_iface": "máx. una interfaz, extra: %q",
 		"ufw.ufw_status_failed": "ufw status verbose: %w\n%s", "ufw.section_rules": "=== Reglas UFW con %s ===",
-		"ufw.no_lines": "(sin líneas «z-panel»)", "ufw.section_hints": "=== Sugerencias (plantillas) ===",
+		"ufw.no_lines": "(sin líneas «z-panel»)", "ufw.section_iface_refs": "=== Líneas ufw status con interfaz %s (cualquier comentario) ===",
+		"ufw.no_iface_refs": "(ninguna línea «on %s» en ufw status — añada route/forward si hace falta)", "ufw.section_hints": "=== Sugerencias (plantillas) ===",
 		"ufw.hint_sysctl": `# Enrutamiento:
 # /etc/ufw/sysctl.conf: net.ipv4.ip_forward=1
 sudo ufw route allow in on %s out on %s from %s comment '%s: lan to tunnel'
@@ -200,15 +208,23 @@ xray-redirect [help] down <interface>
   Flags : --bypass-unit, --table (déf. %s), --no-mark, --ipv6
 
 `,
-		"ufw.want_check": "attendu : z-panel ufw check …", "ufw.help": `ufw [help] check [--lan-cidr=] [--lan-dev=] [interface]
+		"ufw.want_check": "attendu : z-panel ufw check …", "ufw.want_subcmd": "attendu : ufw check … ou ufw masq-check <iface>",
+		"ufw.help": `ufw [help] check [--lan-cidr=] [--lan-dev=] [interface]
   Règles UFW %s. Modèles : --lan-cidr (déf. %s), --lan-dev (%s).
 
+ufw [help] masq-check [--lan-cidr=] <interface>
+  Cherche MASQUERADE/SNAT POSTROUTING -o <interface>. Sinon ligne pour before.rules. CIDR LAN déf. %s.
+
 `,
+		"ufw.masq.verdict_ok": "ÉTAT : OK — MASQUERADE/SNAT POSTROUTING pour -o %s présent (%d règle(s)).", "ufw.masq.detail_heading": "Lignes (iptables-save -t nat) :", "ufw.masq.verdict_missing": "ÉTAT : MANQUANT — aucune règle POSTROUTING MASQUERADE/SNAT avec -o %s.\n",
+		"ufw.masq.hint_add": "Ligne (avec les autres MASQUERADE), puis : sudo ufw reload\n\n-A POSTROUTING -s %s -o %s -j MASQUERADE\n",
+		"ufw.masq.iptables_cmd": "iptables-save -t nat", "ufw.masq.want_iface": "masq-check : une interface (ex. z-panel ufw masq-check xray2tun)",
 		"ufw.err.lan_cidr_empty": "--lan-cidr vide", "ufw.err.lan_cidr_need": "valeur après --lan-cidr",
 		"ufw.err.lan_dev_empty": "--lan-dev vide", "ufw.err.lan_dev_need": "valeur après --lan-dev",
 		"ufw.err.unknown_flag": "option inconnue : %s", "ufw.err.too_many_iface": "une seule interface, extra : %q",
 		"ufw.ufw_status_failed": "ufw status verbose : %w\n%s", "ufw.section_rules": "=== Règles UFW %s ===",
-		"ufw.no_lines": "(aucune ligne z-panel)", "ufw.section_hints": "=== Suggestions ===",
+		"ufw.no_lines": "(aucune ligne z-panel)", "ufw.section_iface_refs": "=== Lignes ufw status mentionnant l’interface %s ===",
+		"ufw.no_iface_refs": "(aucune ligne «on %s» — ajoutez route/forward si besoin)", "ufw.section_hints": "=== Suggestions ===",
 		"ufw.hint_sysctl": `# Routage :
 sudo ufw route allow in on %s out on %s from %s comment '%s: lan to tunnel'
 `,
@@ -321,15 +337,23 @@ xray-redirect [help] down <interface>
   Túnel estilo wg-quick ; cgroup v2. --table padrão %s
 
 `,
-		"ufw.want_check": "esperado: z-panel ufw check …", "ufw.help": `ufw [help] check …
+		"ufw.want_check": "esperado: z-panel ufw check …", "ufw.want_subcmd": "esperado: ufw check … ou ufw masq-check <iface>",
+		"ufw.help": `ufw [help] check …
   Regras UFW %s. --lan-cidr (padrão %s), --lan-dev (%s).
 
+ufw [help] masq-check [--lan-cidr=CIDR] <interface>
+  Procura MASQUERADE/SNAT -o <interface> em nat. Se faltar, linha para before.rules. CIDR LAN padrão %s.
+
 `,
+		"ufw.masq.verdict_ok": "ESTADO: OK — MASQUERADE/SNAT POSTROUTING para -o %s presente (%d regra(s)).", "ufw.masq.detail_heading": "Linhas (iptables-save -t nat):", "ufw.masq.verdict_missing": "ESTADO: FALTANDO — sem regra POSTROUTING MASQUERADE/SNAT com -o %s.\n",
+		"ufw.masq.hint_add": "Linha sugerida; depois: sudo ufw reload\n\n-A POSTROUTING -s %s -o %s -j MASQUERADE\n",
+		"ufw.masq.iptables_cmd": "iptables-save -t nat", "ufw.masq.want_iface": "masq-check: uma interface (ex. z-panel ufw masq-check xray2tun)",
 		"ufw.err.lan_cidr_empty": "--lan-cidr vazio", "ufw.err.lan_cidr_need": "valor após --lan-cidr",
 		"ufw.err.lan_dev_empty": "--lan-dev vazio", "ufw.err.lan_dev_need": "valor após --lan-dev",
 		"ufw.err.unknown_flag": "flag desconhecido: %s", "ufw.err.too_many_iface": "no máx. uma interface, extra: %q",
 		"ufw.ufw_status_failed": "ufw status verbose: %w\n%s", "ufw.section_rules": "=== Regras UFW %s ===",
-		"ufw.no_lines": "(sem linhas z-panel)", "ufw.section_hints": "=== Sugestões ===",
+		"ufw.no_lines": "(sem linhas z-panel)", "ufw.section_iface_refs": "=== Linhas ufw status com interface %s ===",
+		"ufw.no_iface_refs": "(nenhuma linha «on %s» — adicione route/forward se precisar)", "ufw.section_hints": "=== Sugestões ===",
 		"ufw.hint_sysctl": `sudo ufw route allow in on %s out on %s from %s comment '%s: lan to tunnel'
 `,
 		"ufw.hint_return": "# Se ufw bloquear:\n", "ufw.hint_return_cmd": "sudo ufw route allow in on %s out on %s comment '%s: return path'\n",

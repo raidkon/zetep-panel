@@ -110,11 +110,26 @@ xray-redirect [help] down <interface>
 
 `,
 
-		"ufw.want_check": "expected: z-panel ufw check [flags] [interface] (see z-panel ufw help)",
-		"ufw.help": `ufw [help] check [--lan-cidr=CIDR] [--lan-dev=DEV] [interface]
-  UFW rules with tag %s. Templates: --lan-cidr (default %s), --lan-dev (%s).
+		"ufw.want_check":    "expected: z-panel ufw check [flags] [interface] (see z-panel ufw help)",
+		"ufw.want_subcmd":   "expected: z-panel ufw check … (see z-panel ufw help)",
+		"ufw.help": `ufw [help] check [--full] [--lan-cidr=CIDR] [--lan-dev=DEV] [interface]
+  Checks UFW forwarding for the tunnel, MASQUERADE/SNAT (-o iface) in nat, and suggests fixes.
+  First line: status (green / yellow / red). Without --full, only problems and fixes are printed in detail.
+  Tag %s in comments. Templates: --lan-cidr (default %s), --lan-dev (%s).
+
+ufw [help] masq-check [--lan-cidr=CIDR] <interface>
+  Same as check <interface> (legacy alias).
 
 `,
+		"ufw.masq.verdict_ok":      "STATUS: OK — POSTROUTING MASQUERADE/SNAT for -o %s is present (%d matching rule(s)).",
+		"ufw.masq.detail_heading":  "iptables-save -t nat — matching line(s):",
+		"ufw.masq.verdict_missing": "STATUS: MISSING — no POSTROUTING MASQUERADE/SNAT rule with -o %s in table nat.\n",
+		"ufw.masq.hint_add": `Suggested line (place with your other POSTROUTING MASQUERADE rules, e.g. second *nat block in /etc/ufw/before.rules), then: sudo ufw reload
+
+-A POSTROUTING -s %s -o %s -j MASQUERADE
+`,
+		"ufw.masq.iptables_cmd": "iptables-save -t nat",
+		"ufw.masq.want_iface":   "masq-check: exactly one interface name required (example: z-panel ufw masq-check xray2tun)",
 		"ufw.err.lan_cidr_empty": "--lan-cidr: empty value",
 		"ufw.err.lan_cidr_need":  "value required after --lan-cidr",
 		"ufw.err.lan_dev_empty":  "--lan-dev: empty value",
@@ -122,8 +137,30 @@ xray-redirect [help] down <interface>
 		"ufw.err.unknown_flag":   "unknown flag: %s",
 		"ufw.err.too_many_iface": "at most one interface expected, extra: %q",
 		"ufw.ufw_status_failed": "ufw status verbose: %w\n%s",
+		"ufw.check.status_label":    "Status: ",
+		"ufw.check.status_ok":       "all clear",
+		"ufw.check.status_warn":     "possible issues",
+		"ufw.check.status_bad":      "action required",
+		"ufw.check.section_details": "=== What to address ===",
+		"ufw.check.no_issues_full":  "(no issues — full report below)",
+		"ufw.check.issue_no_iface":  "Tunnel interface not specified. Run: z-panel ufw check <interface> (and use --full for the full report).",
+		"ufw.check.issue_iptables":  "Could not read iptables nat table (iptables-save -t nat): %v",
+		"ufw.check.issue_no_ufw":    "Interface %q does not appear in ufw status verbose — UFW is not referencing this tunnel.",
+		"ufw.check.fix_no_ufw": `# Enable IP forwarding if needed: /etc/ufw/sysctl.conf → net.ipv4.ip_forward=1
+Allow LAN → tunnel (adjust names/CIDR):
+sudo ufw route allow in on %s out on %s from %s comment '%s: lan to tunnel'
+`,
+		"ufw.check.issue_no_fwd": "Interface %q is in ufw status but there is no ALLOW FWD rule for it — LAN traffic may not be forwarded into the tunnel.",
+		"ufw.check.fix_no_fwd": `# /etc/ufw/sysctl.conf: net.ipv4.ip_forward=1
+sudo ufw route allow in on %s out on %s from %s comment '%s: lan to tunnel'
+`,
+		"ufw.check.issue_no_masq": "No POSTROUTING MASQUERADE/SNAT rule with -o %q in table nat — outbound NAT from LAN via the tunnel will not work.",
+		"ufw.check.issue_no_return": "No ufw status line looks like return forwarding (in on %s → out on %s). MASQUERADE only SNATs traffic leaving via the tunnel; it does not add a UFW forward/route rule for packets arriving on the tunnel toward LAN. If routed traffic is denied by default, replies to LAN clients may still be dropped.",
+		"ufw.check.masq_none_in_full": "(no matching MASQUERADE/SNAT lines)",
 		"ufw.section_rules":       "=== UFW rules mentioning %s ===",
 		"ufw.no_lines":            "(no lines containing «z-panel»)",
+		"ufw.section_iface_refs":   "=== UFW status lines referencing interface %s (any comment) ===",
+		"ufw.no_iface_refs":       "(no ufw status lines reference %q — add route/forward rules if needed)",
 		"ufw.section_hints":       "=== Suggestions (templates — verify for your setup) ===",
 		"ufw.hint_sysctl": `# Routing and forwarding (kernel):
 # /etc/ufw/sysctl.conf: net.ipv4.ip_forward=1
@@ -321,11 +358,26 @@ xray-redirect [help] down <interface>
 
 `,
 
-		"ufw.want_check": "ожидалось: z-panel ufw check [флаги] [interface] (см. z-panel ufw help)",
-		"ufw.help": `ufw [help] check [--lan-cidr=CIDR] [--lan-dev=DEV] [interface]
-  Правила UFW с пометкой %s. Шаблоны: --lan-cidr (по умолчанию %s), --lan-dev (%s).
+		"ufw.want_check":  "ожидалось: z-panel ufw check [флаги] [interface] (см. z-panel ufw help)",
+		"ufw.want_subcmd": "ожидалось: z-panel ufw check … (см. z-panel ufw help)",
+		"ufw.help": `ufw [help] check [--full] [--lan-cidr=CIDR] [--lan-dev=DEV] [interface]
+  Проверка forward UFW для туннеля, MASQUERADE/SNAT (-o интерфейс) в nat и подсказки по исправлению.
+  Первая строка: статус (зелёный / жёлтый / красный). Без --full подробности только по проблемам и что сделать.
+  Пометка %s в комментариях. Шаблоны: --lan-cidr (по умолчанию %s), --lan-dev (%s).
+
+ufw [help] masq-check [--lan-cidr=CIDR] <интерфейс>
+  То же, что check <интерфейс> (старый алиас).
 
 `,
+		"ufw.masq.verdict_ok":      "СТАТУС: ЕСТЬ — в nat для исхода через %s уже задано MASQUERADE/SNAT в POSTROUTING (совпадений: %d).",
+		"ufw.masq.detail_heading":  "Соответствующие строки (iptables-save -t nat):",
+		"ufw.masq.verdict_missing": "СТАТУС: НЕТ — в таблице nat не найдено правило POSTROUTING с MASQUERADE/SNAT и -o %s.\n",
+		"ufw.masq.hint_add": `Добавьте строку (рядом с остальными POSTROUTING MASQUERADE, часто второй блок *nat в /etc/ufw/before.rules), затем: sudo ufw reload
+
+-A POSTROUTING -s %s -o %s -j MASQUERADE
+`,
+		"ufw.masq.iptables_cmd": "iptables-save -t nat",
+		"ufw.masq.want_iface":   "masq-check: нужен ровно один интерфейс (пример: z-panel ufw masq-check xray2tun)",
 		"ufw.err.lan_cidr_empty": "--lan-cidr: пустое значение",
 		"ufw.err.lan_cidr_need":  "нужно значение после --lan-cidr",
 		"ufw.err.lan_dev_empty":  "--lan-dev: пустое значение",
@@ -333,8 +385,30 @@ xray-redirect [help] down <interface>
 		"ufw.err.unknown_flag":   "неизвестный флаг: %s",
 		"ufw.err.too_many_iface": "ожидается не больше одного интерфейса, лишнее: %q",
 		"ufw.ufw_status_failed":  "ufw status verbose: %w\n%s",
+		"ufw.check.status_label":    "Статус: ",
+		"ufw.check.status_ok":       "все отлично",
+		"ufw.check.status_warn":     "возможны проблемы",
+		"ufw.check.status_bad":      "необходимы разрешения",
+		"ufw.check.section_details": "=== Что сделать ===",
+		"ufw.check.no_issues_full":  "(замечаний нет — ниже полный отчёт)",
+		"ufw.check.issue_no_iface":  "Не указан интерфейс туннеля. Запустите: z-panel ufw check <интерфейс> (и --full для полного вывода).",
+		"ufw.check.issue_iptables":  "Не удалось прочитать таблицу nat (iptables-save -t nat): %v",
+		"ufw.check.issue_no_ufw":    "Интерфейса %q нет в выводе «ufw status verbose» — UFW не ссылается на этот туннель.",
+		"ufw.check.fix_no_ufw": `# При необходимости: /etc/ufw/sysctl.conf → net.ipv4.ip_forward=1
+Разрешить LAN → туннель (подставьте свои имена/CIDR):
+sudo ufw route allow in on %s out on %s from %s comment '%s: lan to tunnel'
+`,
+		"ufw.check.issue_no_fwd": "Интерфейс %q есть в статусе ufw, но нет правила ALLOW FWD — трафик LAN в туннель может не пересылаться.",
+		"ufw.check.fix_no_fwd": `# /etc/ufw/sysctl.conf: net.ipv4.ip_forward=1
+sudo ufw route allow in on %s out on %s from %s comment '%s: lan to tunnel'
+`,
+		"ufw.check.issue_no_masq": "В таблице nat нет POSTROUTING MASQUERADE/SNAT с -o %q — исходящий NAT с LAN в туннель не задан.",
+		"ufw.check.issue_no_return": "В статусе ufw не видно пересылки для обратного пути (in on %s → out on %s). MASQUERADE в nat только делает SNAT для исходящего трафика в туннель; отдельное правило forward/route для пакетов, входящих с туннеля к LAN, этим не заменяется — при deny (routed) ответы к клиентам всё ещё могут резаться.",
+		"ufw.check.masq_none_in_full": "(нет подходящих строк MASQUERADE/SNAT)",
 		"ufw.section_rules":      "=== Правила UFW с пометкой %s ===",
 		"ufw.no_lines":           "(нет строк, содержащих «z-panel»)",
+		"ufw.section_iface_refs": "=== Строки ufw status, где есть интерфейс %s (любой комментарий) ===",
+		"ufw.no_iface_refs":      "(в ufw status нет строк с «on %s» — при необходимости добавьте route/forward)",
 		"ufw.section_hints":      "=== Рекомендации (шаблоны, проверьте под свою схему) ===",
 		"ufw.hint_sysctl": `# Маршрутизация и forward (ядро):
 # /etc/ufw/sysctl.conf: net.ipv4.ip_forward=1

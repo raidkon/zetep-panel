@@ -109,10 +109,24 @@ xray-redirect [help] down <interface>
 `,
 
 		"ufw.want_check": "应为：z-panel ufw check [flags] [interface]（见 z-panel ufw help）",
-		"ufw.help": `ufw [help] check [--lan-cidr=CIDR] [--lan-dev=DEV] [interface]
-  带标记 %s 的 UFW 规则。模板：--lan-cidr（默认 %s）、--lan-dev（%s）。
+		"ufw.want_subcmd": "应为：z-panel ufw check …（见 help）",
+		"ufw.help": `ufw [help] check [--full] [--lan-cidr=CIDR] [--lan-dev=DEV] [interface]
+  检查 UFW 转发、nat MASQUERADE（-o 接口）并给出修复建议。首行彩色状态；无 --full 时仅输出问题与处理。
+  注释标记 %s。模板：--lan-cidr（默认 %s）、--lan-dev（%s）。
+
+ufw [help] masq-check [--lan-cidr=CIDR] <interface>
+  等同于 check <interface>（旧别名）。LAN CIDR 默认 %s。
 
 `,
+		"ufw.masq.verdict_ok":      "状态：已有 — 接口 %s 在 nat 的 POSTROUTING 中已有 MASQUERADE/SNAT（%d 条）。",
+		"ufw.masq.detail_heading":  "iptables-save -t nat 匹配行：",
+		"ufw.masq.verdict_missing": "状态：缺失 — nat 表中没有 -o %s 的 POSTROUTING MASQUERADE/SNAT。\n",
+		"ufw.masq.hint_add": `建议行（放在其他 POSTROUTING MASQUERADE 旁，常为 before.rules 第二个 *nat 块），然后：sudo ufw reload
+
+-A POSTROUTING -s %s -o %s -j MASQUERADE
+`,
+		"ufw.masq.iptables_cmd": "iptables-save -t nat",
+		"ufw.masq.want_iface":   "masq-check：需要一个接口名（例：z-panel ufw masq-check xray2tun）",
 		"ufw.err.lan_cidr_empty": "--lan-cidr：空值",
 		"ufw.err.lan_cidr_need":  "--lan-cidr 后需要值",
 		"ufw.err.lan_dev_empty":  "--lan-dev：空值",
@@ -120,8 +134,29 @@ xray-redirect [help] down <interface>
 		"ufw.err.unknown_flag":   "未知标志：%s",
 		"ufw.err.too_many_iface": "最多一个接口，多余：%q",
 		"ufw.ufw_status_failed":  "ufw status verbose：%w\n%s",
+		"ufw.check.status_label":    "状态：",
+		"ufw.check.status_ok":       "一切正常",
+		"ufw.check.status_warn":     "可能有问题",
+		"ufw.check.status_bad":      "需要处理",
+		"ufw.check.section_details": "=== 需要处理的事项 ===",
+		"ufw.check.no_issues_full":  "（无问题 — 以下为完整报告）",
+		"ufw.check.issue_no_iface":  "未指定隧道接口。运行：z-panel ufw check <interface>（加 --full 看完整输出）。",
+		"ufw.check.issue_iptables":  "无法读取 nat 表（iptables-save -t nat）：%v",
+		"ufw.check.issue_no_ufw":    "ufw status verbose 中未出现接口 %q。",
+		"ufw.check.fix_no_ufw": `# 如需：/etc/ufw/sysctl.conf → net.ipv4.ip_forward=1
+sudo ufw route allow in on %s out on %s from %s comment '%s: lan to tunnel'
+`,
+		"ufw.check.issue_no_fwd": "接口 %q 在 ufw 中但无 ALLOW FWD。",
+		"ufw.check.fix_no_fwd": `# /etc/ufw/sysctl.conf: net.ipv4.ip_forward=1
+sudo ufw route allow in on %s out on %s from %s comment '%s: lan to tunnel'
+`,
+		"ufw.check.issue_no_masq": "nat 表中无 -o %q 的 POSTROUTING MASQUERADE/SNAT。",
+		"ufw.check.issue_no_return": "未见回程转发（in on %s → out on %s）。MASQUERADE 只做经隧道的出站 SNAT，不能代替 UFW 对「隧道入 → LAN 出」的 forward/route 放行。",
+		"ufw.check.masq_none_in_full": "（无匹配的 MASQUERADE/SNAT 行）",
 		"ufw.section_rules":      "=== 提及 %s 的 UFW 规则 ===",
 		"ufw.no_lines":           "（无包含 «z-panel» 的行）",
+		"ufw.section_iface_refs": "=== ufw status 中含接口 %s 的行（任意注释）===",
+		"ufw.no_iface_refs":      "（ufw status 中没有 «on %s» — 如需请添加 route/forward）",
 		"ufw.section_hints":      "=== 建议（模板 — 请按环境核实）===",
 		"ufw.hint_sysctl": `# 路由与转发（内核）：
 # /etc/ufw/sysctl.conf: net.ipv4.ip_forward=1

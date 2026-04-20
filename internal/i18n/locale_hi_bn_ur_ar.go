@@ -68,15 +68,22 @@ xray-redirect [help] down <interface>
   wg-quick जैसा पूरा टनल; cgroup v2। डिफ़ॉल्ट टेबल %s
 
 `,
-		"ufw.want_check": "अपेक्षित: z-panel ufw check …", "ufw.help": `ufw [help] check …
+		"ufw.want_check": "अपेक्षित: z-panel ufw check …", "ufw.want_subcmd": "अपेक्षित: ufw check … या masq-check <iface>",
+		"ufw.help": `ufw [help] check …
   UFW नियम %s। --lan-cidr (डि. %s), --lan-dev (%s)।
 
+ufw masq-check [--lan-cidr] <iface>: iptables nat में -o <iface> के लिए POSTROUTING MASQUERADE/SNAT। नहीं मिला तो before.rules की सुझाई पंक्ति। LAN CIDR डि. %s।
+
 `,
+		"ufw.masq.verdict_ok": "स्थिति: है — -o %s के लिए POSTROUTING में MASQUERADE/SNAT (%d)।", "ufw.masq.detail_heading": "iptables-save -t nat:", "ufw.masq.verdict_missing": "स्थिति: नहीं — -o %s के लिए कोई POSTROUTING MASQUERADE/SNAT नहीं।\n",
+		"ufw.masq.hint_add": "sudo ufw reload से पहले अन्य MASQUERADE के पास जोड़ें:\n\n-A POSTROUTING -s %s -o %s -j MASQUERADE\n",
+		"ufw.masq.iptables_cmd": "iptables-save -t nat", "ufw.masq.want_iface": "masq-check: एक इंटरफ़ेस चाहिए",
 		"ufw.err.lan_cidr_empty": "--lan-cidr खाली", "ufw.err.lan_cidr_need": "--lan-cidr के बाद मान",
 		"ufw.err.lan_dev_empty": "--lan-dev खाली", "ufw.err.lan_dev_need": "--lan-dev के बाद मान",
 		"ufw.err.unknown_flag": "अज्ञात फ़्लैग: %s", "ufw.err.too_many_iface": "अधिकतम एक इंटरफ़ेस, अतिरिक्त: %q",
 		"ufw.ufw_status_failed": "ufw status verbose: %w\n%s", "ufw.section_rules": "=== UFW नियम %s ===",
-		"ufw.no_lines": "(z-panel पंक्तियाँ नहीं)", "ufw.section_hints": "=== सुझाव ===",
+		"ufw.no_lines": "(z-panel पंक्तियाँ नहीं)", "ufw.section_iface_refs": "=== ufw status: इंटरफ़ेस %s वाली पंक्तियाँ ===",
+		"ufw.no_iface_refs": "(«on %s» वाली कोई पंक्ति नहीं)", "ufw.section_hints": "=== सुझाव ===",
 		"ufw.hint_sysctl": `sudo ufw route allow in on %s out on %s from %s comment '%s: lan to tunnel'
 `,
 		"ufw.hint_return": "# यदि ufw उत्तर रोकता है:\n",
@@ -187,15 +194,22 @@ xray-redirect [help] down <interface>
   wg-quick-স্টাইল টানেল। ডিফল্ট টেবিল %s
 
 `,
-		"ufw.want_check": "প্রত্যাশিত: ufw check …", "ufw.help": `ufw [help] check …
+		"ufw.want_check": "প্রত্যাশিত: ufw check …", "ufw.want_subcmd": "প্রত্যাশিত: check … অথবা masq-check <iface>",
+		"ufw.help": `ufw [help] check …
   UFW নিয়ম %s। %s, %s।
 
+masq-check [--lan-cidr] <iface>: nat-এ MASQUERADE/SNAT (-o) খুঁজুন; না থাকলে before.rules লাইন। LAN CIDR ডি. %s।
+
 `,
+		"ufw.masq.verdict_ok": "অবস্থা: আছে — -o %s POSTROUTING MASQUERADE/SNAT (%d)।", "ufw.masq.detail_heading": "iptables-save -t nat:", "ufw.masq.verdict_missing": "অবস্থা: নেই — -o %s এর জন্য POSTROUTING MASQUERADE/SNAT নেই।\n",
+		"ufw.masq.hint_add": "sudo ufw reload এর আগে:\n\n-A POSTROUTING -s %s -o %s -j MASQUERADE\n",
+		"ufw.masq.iptables_cmd": "iptables-save -t nat", "ufw.masq.want_iface": "masq-check: একটি ইন্টারফেস",
 		"ufw.err.lan_cidr_empty": "--lan-cidr খালি", "ufw.err.lan_cidr_need": "--lan-cidr পরে মান",
 		"ufw.err.lan_dev_empty": "--lan-dev খালি", "ufw.err.lan_dev_need": "--lan-dev পরে মান",
 		"ufw.err.unknown_flag": "অজানা ফ্ল্যাগ: %s", "ufw.err.too_many_iface": "একটি ইন্টারফেস, অতিরিক্ত: %q",
 		"ufw.ufw_status_failed": "ufw: %w\n%s", "ufw.section_rules": "=== UFW %s ===",
-		"ufw.no_lines": "(কোনো z-panel লাইন নেই)", "ufw.section_hints": "=== পরামর্শ ===",
+		"ufw.no_lines": "(কোনো z-panel লাইন নেই)", "ufw.section_iface_refs": "=== ufw status: ইন্টারফেস %s ===",
+		"ufw.no_iface_refs": "(«on %s» নেই)", "ufw.section_hints": "=== পরামর্শ ===",
 		"ufw.hint_sysctl": `sudo ufw route allow in on %s out on %s from %s comment '%s: lan to tunnel'
 `,
 		"ufw.hint_return": "# ufw উত্তর ব্লক করলে:\n",
@@ -306,15 +320,22 @@ xray-redirect [help] down <interface>
   wg-quick جیسا ٹنل۔ ڈیفالٹ ٹیبل %s
 
 `,
-		"ufw.want_check": "متوقع: ufw check …", "ufw.help": `ufw [help] check …
+		"ufw.want_check": "متوقع: ufw check …", "ufw.want_subcmd": "متوقع: check … یا masq-check <iface>",
+		"ufw.help": `ufw [help] check …
   UFW %s۔ %s, %s۔
 
+masq-check [--lan-cidr] <iface>: nat میں MASQUERADE/SNAT تلاش۔ نہیں تو before.rules۔ LAN CIDR ڈیف. %s۔
+
 `,
+		"ufw.masq.verdict_ok": "حالت: موجود — -o %s کے لیے POSTROUTING MASQUERADE/SNAT (%d)۔", "ufw.masq.detail_heading": "iptables-save -t nat:", "ufw.masq.verdict_missing": "حالت: نہیں — -o %s کے لیے کوئی POSTROUTING MASQUERADE/SNAT نہیں۔\n",
+		"ufw.masq.hint_add": "sudo ufw reload:\n\n-A POSTROUTING -s %s -o %s -j MASQUERADE\n",
+		"ufw.masq.iptables_cmd": "iptables-save -t nat", "ufw.masq.want_iface": "masq-check: ایک انٹرفیس",
 		"ufw.err.lan_cidr_empty": "--lan-cidr خالی", "ufw.err.lan_cidr_need": "--lan-cidr بعد قدر",
 		"ufw.err.lan_dev_empty": "--lan-dev خالی", "ufw.err.lan_dev_need": "--lan-dev بعد قدر",
 		"ufw.err.unknown_flag": "نامعلوم فلیگ: %s", "ufw.err.too_many_iface": "ایک انٹرفیس، اضافی: %q",
 		"ufw.ufw_status_failed": "ufw: %w\n%s", "ufw.section_rules": "=== UFW %s ===",
-		"ufw.no_lines": "(کوئی z-panel لائن نہیں)", "ufw.section_hints": "=== تجاویز ===",
+		"ufw.no_lines": "(کوئی z-panel لائن نہیں)", "ufw.section_iface_refs": "=== ufw status: انٹرفیس %s ===",
+		"ufw.no_iface_refs": "(«on %s» نہیں)", "ufw.section_hints": "=== تجاویز ===",
 		"ufw.hint_sysctl": `sudo ufw route allow in on %s out on %s from %s comment '%s: lan to tunnel'
 `,
 		"ufw.hint_return": "# اگر ufw جواب روکے:\n",
@@ -425,15 +446,22 @@ xray-redirect [help] down <interface>
   نفق مثل wg-quick. الجدول الافتراضي %s
 
 `,
-		"ufw.want_check": "متوقع: ufw check …", "ufw.help": `ufw [help] check …
+		"ufw.want_check": "متوقع: ufw check …", "ufw.want_subcmd": "متوقع: check … أو masq-check <iface>",
+		"ufw.help": `ufw [help] check …
   قواعد UFW %s۔ %s، %s۔
 
+masq-check [--lan-cidr] <iface>: البحث عن MASQUERADE/SNAT في nat. وإلا سطر before.rules. LAN CIDR افتراضي %s.
+
 `,
+		"ufw.masq.verdict_ok": "الحالة: موجود — MASQUERADE/SNAT POSTROUTING لـ -o %s (%d قاعدة).", "ufw.masq.detail_heading": "iptables-save -t nat:", "ufw.masq.verdict_missing": "الحالة: مفقود — لا توجد قاعدة POSTROUTING MASQUERADE/SNAT مع -o %s.\n",
+		"ufw.masq.hint_add": "قبل sudo ufw reload:\n\n-A POSTROUTING -s %s -o %s -j MASQUERADE\n",
+		"ufw.masq.iptables_cmd": "iptables-save -t nat", "ufw.masq.want_iface": "masq-check: واجهة واحدة",
 		"ufw.err.lan_cidr_empty": "--lan-cidr فارغ", "ufw.err.lan_cidr_need": "قيمة بعد --lan-cidr",
 		"ufw.err.lan_dev_empty": "--lan-dev فارغ", "ufw.err.lan_dev_need": "قيمة بعد --lan-dev",
 		"ufw.err.unknown_flag": "خيار غير معروف: %s", "ufw.err.too_many_iface": "واجهة واحدة كحد أقصى، زائد: %q",
 		"ufw.ufw_status_failed": "ufw: %w\n%s", "ufw.section_rules": "=== قواعد UFW %s ===",
-		"ufw.no_lines": "(لا أسطر z-panel)", "ufw.section_hints": "=== اقتراحات ===",
+		"ufw.no_lines": "(لا أسطر z-panel)", "ufw.section_iface_refs": "=== ufw status: واجهة %s ===",
+		"ufw.no_iface_refs": "(لا «on %s»)", "ufw.section_hints": "=== اقتراحات ===",
 		"ufw.hint_sysctl": `sudo ufw route allow in on %s out on %s from %s comment '%s: lan to tunnel'
 `,
 		"ufw.hint_return": "# إذا حظر ufw الردود:\n",
