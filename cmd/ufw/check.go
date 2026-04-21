@@ -2,9 +2,9 @@ package ufw
 
 import (
 	"fmt"
-	"os/exec"
 	"strings"
 
+	"z-panel/internal/executil"
 	"z-panel/internal/i18n"
 	"z-panel/internal/settings"
 )
@@ -17,24 +17,40 @@ const (
 	checkBad
 )
 
-func runUnifiedCheck(iface, lanCIDR, lanDev string, full bool) error {
-	out, err := exec.Command("ufw", "status", "verbose").CombinedOutput()
-	if err != nil {
-		return fmt.Errorf(i18n.T("ufw.ufw_status_failed"), err, out)
-	}
-	text := string(out)
-	lines := strings.Split(text, "\n")
+// Printed between ufw and iptables-save inside one sudo sh -c (one SSH, one sudo prompt over --ssh).
+const ufwCheckIptSplitMarker = "ZPANEL_UFWCHECK_IPT_SPLIT_LINE"
 
+func runUnifiedCheck(iface, lanCIDR, lanDev string, full bool) error {
+	var text string
 	var masqLines []string
 	var iptErr error
+
 	if iface != "" {
-		iptOut, err := exec.Command("iptables-save", "-t", "nat").CombinedOutput()
+		// One argv to sudo sh -c only — do not nest /bin/sh -c + quoting; ssh/sudo may drop -c and leave an interactive sudo sh (root #).
+		script := fmt.Sprintf("/usr/sbin/ufw status verbose; echo; echo %s; /usr/sbin/iptables-save -t nat", ufwCheckIptSplitMarker)
+		out, err := executil.RunTTYCombinedScript(script)
 		if err != nil {
-			iptErr = fmt.Errorf("%w\n%s", err, strings.TrimSpace(string(iptOut)))
-		} else {
-			masqLines = masqueradeLinesForIface(string(iptOut), iface)
+			return fmt.Errorf(i18n.T("ufw.ufw_status_failed"), err, out)
 		}
+		s := string(out)
+		key := "\n" + ufwCheckIptSplitMarker + "\n"
+		if i := strings.Index(s, key); i >= 0 {
+			text = s[:i]
+			ipt := strings.TrimSuffix(s[i+len(key):], "\n")
+			masqLines = masqueradeLinesForIface(ipt, iface)
+		} else {
+			text = s
+			iptErr = fmt.Errorf("%s", i18n.T("ufw.check.err_ipt_split"))
+		}
+	} else {
+		out, err := executil.RunTTYCombined("ufw", "status", "verbose")
+		if err != nil {
+			return fmt.Errorf(i18n.T("ufw.ufw_status_failed"), err, out)
+		}
+		text = string(out)
 	}
+
+	lines := strings.Split(text, "\n")
 
 	ifaceHits := statusLinesReferencingIface(lines, iface)
 	nFwd := fwdRuleCountForIface(lines, iface)

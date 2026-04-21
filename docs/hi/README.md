@@ -30,7 +30,7 @@ sudo z-panel install
 दूरस्थ (क्लाइंट पर `scp` / `ssh`):
 
 ```bash
-z-panel install user@host
+z-panel --ssh=user@host install
 ```
 
 डिफ़ॉल्ट पथ: बाइनरी `/usr/local/bin/z-panel`, कॉन्फ़िग `/etc/z-panel/config.toml`।

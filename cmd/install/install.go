@@ -5,10 +5,8 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
-	"strconv"
-	"syscall"
+	"strings"
 
 	"z-panel/cmd/installshell"
 	"z-panel/internal/app"
@@ -30,7 +28,7 @@ func (c *Cmd) Run(args []string) error {
 		return nil
 	}
 	if len(args) >= 1 {
-		return remoteInstall(args[0])
+		return fmt.Errorf("%s", i18n.T("install.err_remote_removed", args[0], args[0]))
 	}
 	return localInstall()
 }
@@ -46,39 +44,37 @@ func (c *Cmd) BashCompletionCase(w io.Writer) {
 `)
 }
 
-// runAttachedInterruptible runs a command attached to the terminal; on Ctrl+C/SIGTERM kills the child
-// (remote sudo often swallows SIGINT).
-func runAttachedInterruptible(cmd *exec.Cmd) error {
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
-	defer signal.Stop(sigCh)
-	waitCh := make(chan error, 1)
-	go func() { waitCh <- cmd.Wait() }()
-	select {
-	case err := <-waitCh:
-		return err
-	case <-sigCh:
-		if cmd.Process != nil {
-			_ = cmd.Process.Kill()
+func parseZPanelVersionOutput(output string) string {
+	for _, line := range strings.Split(output, "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "z-panel ") {
+			return strings.TrimSpace(strings.TrimPrefix(line, "z-panel "))
 		}
-		err := <-waitCh
-		if err != nil {
-			return fmt.Errorf(i18n.T("install.err.interrupted_with"), err)
-		}
-		return fmt.Errorf("%s", i18n.T("install.err.interrupted"))
 	}
+	return ""
+}
+
+// installedBinaryVersion runs the given z-panel binary and parses the first "z-panel x.y.z" line from combined output.
+func installedBinaryVersion(bin string) string {
+	st, err := os.Stat(bin)
+	if err != nil || st.IsDir() {
+		return ""
+	}
+	if st.Mode()&0111 == 0 {
+		return ""
+	}
+	out, err := exec.Command(bin, "version").CombinedOutput()
+	if err != nil {
+		return ""
+	}
+	return parseZPanelVersionOutput(string(out))
 }
 
 func localInstall() error {
 	if err := root.Require(); err != nil {
 		return err
 	}
+	oldVer := installedBinaryVersion(config.InstallPath)
 	self, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("os.Executable: %w", err)
@@ -110,41 +106,14 @@ func localInstall() error {
 		os.Remove(tmp)
 		return fmt.Errorf(i18n.T("install.err.rename"), config.InstallPath, err)
 	}
-	// Target file mode (rename keeps mode of tmp)
 	_ = os.Chmod(config.InstallPath, 0o755)
 	fmt.Printf(i18n.T("install.installed"), config.InstallPath)
+	fmt.Printf(i18n.T("install.new_version"), config.Version)
+	if oldVer != "" {
+		fmt.Printf(i18n.T("install.old_version"), oldVer)
+	}
 	if err := settings.InitInteractive(os.Stdin, os.Stdout, false); err != nil {
 		return fmt.Errorf(i18n.T("install.err.config"), err)
 	}
-	if err := installshell.InstallSystem(); err != nil {
-		fmt.Fprintf(os.Stderr, i18n.T("install.warn_completion"), err)
-	}
-	return nil
-}
-
-func remoteInstall(sshHost string) error {
-	self, err := os.Executable()
-	if err != nil {
-		return err
-	}
-	self, err = filepath.EvalSymlinks(self)
-	if err != nil {
-		return err
-	}
-	remoteTmp := "/tmp/z-panel-install-" + strconv.Itoa(os.Getpid())
-	scp := exec.Command("scp", "-C", self, sshHost+":"+remoteTmp)
-	if err := runAttachedInterruptible(scp); err != nil {
-		return fmt.Errorf(i18n.T("install.err.scp"), err)
-	}
-	// One session: install + interactive config init if config.toml missing (needs -t).
-	remote := fmt.Sprintf(
-		`sudo install -m 755 %s %s && rm -f %s && { if [ -f %s ]; then sudo z-panel config migrate; else sudo z-panel config init; fi; } && sudo z-panel install-shell`,
-		remoteTmp, config.InstallPath, remoteTmp, config.ConfigFile,
-	)
-	ssh := exec.Command("ssh", "-t", sshHost, remote)
-	if err := runAttachedInterruptible(ssh); err != nil {
-		return fmt.Errorf(i18n.T("install.err.ssh"), err)
-	}
-	fmt.Printf(i18n.T("install.remote_done"), sshHost, config.InstallPath)
-	return nil
+	return installshell.InstallSystem()
 }

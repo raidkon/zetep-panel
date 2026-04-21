@@ -44,9 +44,9 @@ func (c *Cmd) Help(w io.Writer) {
 
 func (c *Cmd) BashCompletionCase(w io.Writer) {
 	fmt.Fprint(w, `	config)
-		if [[ $cword -eq 2 ]]; then
+		if [[ $ecword -eq 2 ]]; then
 			mapfile -t COMPREPLY < <(compgen -W 'init migrate help -h --help' -- "$cur")
-		elif [[ ${COMP_WORDS[2]} == init ]]; then
+		elif [[ ${COMP_WORDS[$((_z_panel_cmd_start+1))]} == init ]]; then
 			mapfile -t COMPREPLY < <(compgen -W '--force -f' -- "$cur")
 		fi
 		return

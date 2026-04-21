@@ -30,7 +30,7 @@ sudo z-panel install
 ریموٹ (کلائنٹ پر `scp` / `ssh`):
 
 ```bash
-z-panel install user@host
+z-panel --ssh=user@host install
 ```
 
 ڈیفالٹ راستے: بائنری `/usr/local/bin/z-panel`، کنفیگ `/etc/z-panel/config.toml`۔

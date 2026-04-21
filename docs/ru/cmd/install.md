@@ -15,13 +15,12 @@ sudo z-panel install
 ## Удалённая установка
 
 ```bash
-z-panel install user@host
+z-panel --ssh=user@host install
 ```
 
-- Через `scp` копирует локальный бинарник `z-panel` на удалённый хост (тот же путь по умолчанию).
-- Через `ssh -t user@host` выполняет там `sudo z-panel install` (возможны `config init` / `config migrate`).
+- С вашей машины выполняется **`ssh -t user@host sudo z-panel install`**; на удалённой стороне те же шаги, что и при локальной установке (при необходимости `config init` / `config migrate`).
 
-На клиенте в `PATH` должны быть `scp` и `ssh`.
+На клиенте в `PATH` должен быть `ssh`.
 
 ## Справка
 

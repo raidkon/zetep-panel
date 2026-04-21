@@ -15,13 +15,12 @@ sudo z-panel install
 ## Remote install
 
 ```bash
-z-panel install user@host
+z-panel --ssh=user@host install
 ```
 
-- Uses `scp` to copy your local `z-panel` binary to the remote host (same default path).
-- Uses `ssh -t user@host` to run `sudo z-panel install` there (which may trigger `config init` / `config migrate`).
+- Runs **`ssh -t user@host sudo z-panel install`** from your machine; the remote side performs the same steps as a local install (including `config init` / `config migrate` when needed).
 
-Requires `scp` and `ssh` in `PATH` on the client.
+Requires `ssh` in `PATH` on the client.
 
 ## Help
 

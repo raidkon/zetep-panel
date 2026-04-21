@@ -5,11 +5,11 @@ import (
 	"io"
 	"net"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"z-panel/internal/app"
+	"z-panel/internal/executil"
 	"z-panel/internal/i18n"
 	"z-panel/internal/root"
 	"z-panel/internal/settings"
@@ -48,18 +48,18 @@ func (c *Cmd) Help(w io.Writer) {
 
 func (c *Cmd) BashCompletionCase(w io.Writer) {
 	fmt.Fprint(w, `	xray-tun)
-		if [[ $cword -eq 2 ]]; then
+		if [[ $ecword -eq 2 ]]; then
 			mapfile -t COMPREPLY < <(compgen -W 'up down help -h --help' -- "$cur")
-		elif [[ ${COMP_WORDS[2]} == up ]]; then
+		elif [[ ${COMP_WORDS[$((_z_panel_cmd_start+1))]} == up ]]; then
 			if [[ $cur == -* ]]; then
 				mapfile -t COMPREPLY < <(compgen -W '--address --peer' -- "$cur")
 			else
 				mapfile -t COMPREPLY < <(compgen -W "$(_z_panel_interfaces) ip" -- "$cur")
 			fi
-		elif [[ ${COMP_WORDS[2]} == down ]]; then
-			if [[ $cword -eq 3 ]]; then
+		elif [[ ${COMP_WORDS[$((_z_panel_cmd_start+1))]} == down ]]; then
+			if [[ $ecword -eq 3 ]]; then
 				mapfile -t COMPREPLY < <(compgen -W "$(_z_panel_interfaces)" -- "$cur")
-			elif [[ $cword -eq 4 ]]; then
+			elif [[ $ecword -eq 4 ]]; then
 				mapfile -t COMPREPLY < <(compgen -W 'ip' -- "$cur")
 			fi
 		fi
@@ -245,11 +245,11 @@ func sanitizeIfaceName(iface string) error {
 }
 
 func networkdReload() error {
-	if exec.Command("networkctl", "reload").Run() == nil {
+	if executil.CommandTTY("networkctl", "reload").Run() == nil {
 		fmt.Println(i18n.T("xraytun.ok_networkctl"))
 		return nil
 	}
-	cmd := exec.Command("systemctl", "reload", "systemd-networkd")
+	cmd := executil.CommandTTY("systemctl", "reload", "systemd-networkd")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {

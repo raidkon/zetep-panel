@@ -24,3 +24,19 @@ func TestConfigPath(t *testing.T) {
 		t.Fatal()
 	}
 }
+
+func TestDaemonEnabled(t *testing.T) {
+	t.Parallel()
+	var nilCfg *Cfg
+	if nilCfg.DaemonEnabled() {
+		t.Fatal()
+	}
+	c := &Cfg{Daemon: 0}
+	if c.DaemonEnabled() {
+		t.Fatal()
+	}
+	c.Daemon = 1
+	if !c.DaemonEnabled() {
+		t.Fatal()
+	}
+}

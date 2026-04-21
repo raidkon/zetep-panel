@@ -30,7 +30,7 @@ sudo z-panel install
 عن بُعد (مع `scp` و`ssh` على العميل):
 
 ```bash
-z-panel install user@host
+z-panel --ssh=user@host install
 ```
 
 المسارات الافتراضية: الثنائي `/usr/local/bin/z-panel`، الإعداد `/etc/z-panel/config.toml`.

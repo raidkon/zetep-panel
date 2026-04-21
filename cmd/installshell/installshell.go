@@ -20,12 +20,18 @@ func New() *Cmd { return &Cmd{} }
 
 func (c *Cmd) Name() string { return "install-shell" }
 
-// InstallSystem writes the completion script to the system path (requires root).
+// InstallSystem writes the completion script to the system path (requires root)
+// and prints the same messages as `z-panel install-shell`.
 func InstallSystem() error {
 	if err := root.Require(); err != nil {
 		return err
 	}
-	return writeCompletion(systemCompletionPath)
+	if err := writeCompletion(systemCompletionPath); err != nil {
+		return err
+	}
+	fmt.Printf(i18n.T("installshell.done"), systemCompletionPath)
+	fmt.Println(i18n.T("installshell.hint_shell"))
+	return nil
 }
 
 func installUserPath() (string, error) {
@@ -69,29 +75,19 @@ func (c *Cmd) Run(args []string) error {
 		}
 	}
 
-	var dest string
-	var err error
-	if userOnly {
-		dest, err = installUserPath()
-		if err != nil {
-			return err
-		}
-	} else {
-		if err := root.Require(); err != nil {
-			return err
-		}
-		dest = systemCompletionPath
+	if !userOnly {
+		return InstallSystem()
 	}
-
+	dest, err := installUserPath()
+	if err != nil {
+		return err
+	}
 	if err := writeCompletion(dest); err != nil {
 		return err
 	}
-
 	fmt.Printf(i18n.T("installshell.done"), dest)
 	fmt.Println(i18n.T("installshell.hint_shell"))
-	if userOnly {
-		fmt.Println(i18n.T("installshell.hint_user"))
-	}
+	fmt.Println(i18n.T("installshell.hint_user"))
 	return nil
 }
 

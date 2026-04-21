@@ -25,7 +25,7 @@ func TestMain(m *testing.M) {
 func TestFindCommand_allRegistered(t *testing.T) {
 	for _, name := range []string{
 		"version", "-v", "--version",
-		"install", "install-shell", "config",
+		"install", "install-shell", "config", "daemon",
 		"xray-redirect", "ufw", "xray-tun",
 	} {
 		if app.FindCommand(name) == nil {

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"z-panel/internal/executil"
 	"z-panel/internal/i18n"
 )
 
@@ -15,7 +16,7 @@ var reIPAddrShow = regexp.MustCompile(`inet\s+([0-9.]+)/`)
 var reIP6AddrShow = regexp.MustCompile(`inet6\s+([0-9a-fA-F:]+)/`)
 
 func tunIfaceIPv4s(iface string) ([]string, error) {
-	out, err := exec.Command("ip", "-o", "-4", "addr", "show", "dev", iface).Output()
+	out, err := executil.RunTTYCombined("ip", "-o", "-4", "addr", "show", "dev", iface)
 	if err != nil {
 		return nil, fmt.Errorf("ip addr show %s: %w", iface, err)
 	}
@@ -29,7 +30,7 @@ func tunIfaceIPv4s(iface string) ([]string, error) {
 }
 
 func tunIfaceIPv6s(iface string) []string {
-	out, err := exec.Command("ip", "-o", "-6", "addr", "show", "dev", iface).Output()
+	out, err := executil.RunTTYCombined("ip", "-o", "-6", "addr", "show", "dev", iface)
 	if err != nil {
 		return nil
 	}
@@ -83,7 +84,7 @@ func addWGStyleFirewall(iface, table string, ipv6 bool, cgroupPath string) error
 
 func nftApplyWGAntiLeak(iface string, v4addrs []string, ipv6 bool) error {
 	tab := "z-panel-" + iface
-	_ = exec.Command("nft", "delete", "table", "ip", tab).Run()
+	_ = executil.CommandTTY("nft", "delete", "table", "ip", tab).Run()
 	var nftcmd strings.Builder
 	fmt.Fprintf(&nftcmd, "add table ip %s\n", tab)
 	fmt.Fprintf(&nftcmd, "add chain ip %s preraw { type filter hook prerouting priority -300; }\n", tab)
@@ -93,14 +94,19 @@ func nftApplyWGAntiLeak(iface string, v4addrs []string, ipv6 bool) error {
 	if ipv6 {
 		tab6 := "z-panel6-" + iface
 		v6addrs := tunIfaceIPv6s(iface)
-		_ = exec.Command("nft", "delete", "table", "ip6", tab6).Run()
+		_ = executil.CommandTTY("nft", "delete", "table", "ip6", tab6).Run()
 		fmt.Fprintf(&nftcmd, "add table ip6 %s\n", tab6)
 		fmt.Fprintf(&nftcmd, "add chain ip6 %s preraw { type filter hook prerouting priority -300; }\n", tab6)
 		for _, a := range v6addrs {
 			fmt.Fprintf(&nftcmd, "add rule ip6 %s preraw iifname != \"%s\" ip6 daddr %s fib saddr type != local drop\n", tab6, iface, a)
 		}
 	}
-	cmd := exec.Command("nft", "-f", "/dev/stdin")
+	var cmd *exec.Cmd
+	if h := executil.RemoteSSHHost(); h != "" {
+		cmd = exec.Command("ssh", h, "sudo", "nft", "-f", "/dev/stdin")
+	} else {
+		cmd = exec.Command("nft", "-f", "/dev/stdin")
+	}
 	cmd.Stdin = strings.NewReader(nftcmd.String())
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -143,8 +149,8 @@ func iptablesMangleCgroupMark(cgroupPath string, mark int, iface string) error {
 }
 
 func removeWGStyleFirewall(iface string) {
-	_ = exec.Command("nft", "delete", "table", "ip", "z-panel-"+iface).Run()
-	_ = exec.Command("nft", "delete", "table", "ip6", "z-panel6-"+iface).Run()
+	_ = executil.CommandTTY("nft", "delete", "table", "ip", "z-panel-"+iface).Run()
+	_ = executil.CommandTTY("nft", "delete", "table", "ip6", "z-panel6-"+iface).Run()
 	removeIptablesZPanelComments(iface)
 }
 
@@ -159,14 +165,14 @@ func removeIptablesZPanelComments(iface string) {
 		if restore == "" {
 			continue
 		}
-		cmd := exec.Command(ipt+"-restore", "-n")
+		cmd := executil.Command(ipt+"-restore", "-n")
 		cmd.Stdin = strings.NewReader(restore)
 		_ = cmd.Run()
 	}
 }
 
 func buildIptablesDeleteRestore(iptables, marker, markM string) string {
-	out, err := exec.Command(iptables + "-save").Output()
+	out, err := executil.Command(iptables + "-save").Output()
 	if err != nil {
 		return ""
 	}

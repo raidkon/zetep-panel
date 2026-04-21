@@ -48,15 +48,15 @@ func (c *Cmd) Help(w io.Writer) {
 
 func (c *Cmd) BashCompletionCase(w io.Writer) {
 	fmt.Fprint(w, `	xray-redirect)
-		if [[ $cword -eq 2 ]]; then
+		if [[ $ecword -eq 2 ]]; then
 			mapfile -t COMPREPLY < <(compgen -W 'up down help -h --help' -- "$cur")
-		elif [[ ${COMP_WORDS[2]} == up ]]; then
+		elif [[ ${COMP_WORDS[$((_z_panel_cmd_start+1))]} == up ]]; then
 			if [[ $cur == -* ]]; then
 				mapfile -t COMPREPLY < <(compgen -W '--no-mark --ipv6 --table --bypass-cgroup --bypass-unit' -- "$cur")
 			else
 				mapfile -t COMPREPLY < <(compgen -W "$(_z_panel_interfaces)" -- "$cur")
 			fi
-		elif [[ ${COMP_WORDS[2]} == down ]] && [[ $cword -eq 3 ]]; then
+		elif [[ ${COMP_WORDS[$((_z_panel_cmd_start+1))]} == down ]] && [[ $ecword -eq 3 ]]; then
 			mapfile -t COMPREPLY < <(compgen -W "$(_z_panel_interfaces)" -- "$cur")
 		fi
 		return

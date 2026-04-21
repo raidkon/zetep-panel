@@ -30,7 +30,7 @@ sudo z-panel install
 রিমোট (ক্লায়েন্টে `scp` / `ssh`):
 
 ```bash
-z-panel install user@host
+z-panel --ssh=user@host install
 ```
 
 ডিফল্ট পথ: বাইনারি `/usr/local/bin/z-panel`, কনফিগ `/etc/z-panel/config.toml`।

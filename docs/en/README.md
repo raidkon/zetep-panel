@@ -36,7 +36,7 @@ sudo z-panel install
 **Remote** (from your dev machine; uses `scp` and one `ssh -t` session):
 
 ```bash
-z-panel install user@host
+z-panel --ssh=user@host install
 ```
 
 Paths are defined in code (`internal/config`): default install path `/usr/local/bin/z-panel`, config `/etc/z-panel/config.toml`.

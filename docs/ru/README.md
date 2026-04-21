@@ -30,7 +30,7 @@ sudo z-panel install
 **Удалённо** (с вашей машины разработки; используются `scp` и один сеанс `ssh -t`):
 
 ```bash
-z-panel install user@host
+z-panel --ssh=user@host install
 ```
 
 Пути по умолчанию заданы в коде (`internal/config`): бинарник `/usr/local/bin/z-panel`, конфиг `/etc/z-panel/config.toml`.

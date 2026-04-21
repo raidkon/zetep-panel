@@ -27,6 +27,10 @@ type Cfg struct {
 	DefaultLANDev      string `toml:"default_lan_dev"`
 	DefaultXrayAddr    string `toml:"default_xray_addr"`
 	DefaultXrayPeer    string `toml:"default_xray_peer"`
+	// SocketPath: Unix socket for daemon IPC (empty → default in /run/z-panel/).
+	SocketPath string `toml:"socket_path"`
+	// Daemon: 1 = when the daemon is running, run subcommands via it; 0 = always run locally.
+	Daemon int `toml:"daemon"`
 	// Language: auto (use locale / Z_PANEL_LANG), en, or ru.
 	Language string `toml:"language"`
 	// SchemaVersion is written by the program; 0 in file means legacy (treated as 1).
@@ -47,6 +51,8 @@ func defaults() Cfg {
 		DefaultLANDev:      "lan0",
 		DefaultXrayAddr:    "10.252.0.1/30",
 		DefaultXrayPeer:    "10.252.0.2/30",
+		SocketPath:         config.DefaultSocketPath,
+		Daemon:             0,
 		Language:           "auto",
 		SchemaVersion:      0,
 	}
@@ -102,7 +108,24 @@ func normalize(c *Cfg) {
 	if strings.TrimSpace(c.DefaultXrayPeer) == "" {
 		c.DefaultXrayPeer = d.DefaultXrayPeer
 	}
+	if strings.TrimSpace(c.SocketPath) == "" {
+		c.SocketPath = d.SocketPath
+	}
+	if c.Daemon != 0 {
+		c.Daemon = 1
+	}
 	normalizeLanguage(c)
+}
+
+// DaemonEnabled reports whether config.toml requests routing commands through the daemon (when it is up).
+func (c *Cfg) DaemonEnabled() bool {
+	return c != nil && c.Daemon != 0
+}
+
+// ApplyDefaults sets C to built-in defaults without reading config.toml (used for z-panel --ssh=… / --ssh-connect=… when config may be unreadable locally).
+func ApplyDefaults() {
+	c := defaults()
+	C = &c
 }
 
 func normalizeLanguage(c *Cfg) {

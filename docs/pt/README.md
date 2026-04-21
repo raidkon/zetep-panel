@@ -30,7 +30,7 @@ sudo z-panel install
 Remota (cliente com `scp` e `ssh`):
 
 ```bash
-z-panel install user@host
+z-panel --ssh=user@host install
 ```
 
 Caminhos padrão: binário `/usr/local/bin/z-panel`, configuração `/etc/z-panel/config.toml`.

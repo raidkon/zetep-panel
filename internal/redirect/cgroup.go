@@ -3,9 +3,9 @@ package redirect
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 
+	"z-panel/internal/executil"
 	"z-panel/internal/i18n"
 )
 
@@ -23,7 +23,7 @@ func resolveBypassCgroupFromFlags(explicitPath, bypassUnit string) (path string,
 }
 
 func cgroupFromUnit(u string) (path string, unit string, err error) {
-	out, err := exec.Command("systemctl", "show", "-p", "ControlGroup", "--value", u).Output()
+	out, err := executil.RunTTYCombined("systemctl", "show", "-p", "ControlGroup", "--value", u)
 	if err != nil {
 		return "", u, fmt.Errorf(i18n.T("redirect.cg_systemctl"), u, err)
 	}

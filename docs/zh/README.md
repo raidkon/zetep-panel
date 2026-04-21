@@ -30,7 +30,7 @@ sudo z-panel install
 远程（需本机 `scp` / `ssh`）：
 
 ```bash
-z-panel install user@host
+z-panel --ssh=user@host install
 ```
 
 默认路径：`/usr/local/bin/z-panel`，配置 `/etc/z-panel/config.toml`。

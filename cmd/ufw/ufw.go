@@ -44,7 +44,7 @@ func (c *Cmd) Run(args []string) error {
 }
 
 func (c *Cmd) Help(w io.Writer) {
-	fmt.Fprintf(w, i18n.T("ufw.help"), settings.C.UfwMarker, settings.C.DefaultLANCIDR, settings.C.DefaultLANDev, settings.C.DefaultLANCIDR)
+	fmt.Fprintf(w, i18n.T("ufw.help"), settings.C.UfwMarker, settings.C.DefaultLANCIDR, settings.C.DefaultLANDev)
 }
 
 func parseCheckArgs(args []string) (iface, lanCIDR, lanDev string, full bool, err error) {
@@ -101,15 +101,15 @@ func parseCheckArgs(args []string) (iface, lanCIDR, lanDev string, full bool, er
 
 func (c *Cmd) BashCompletionCase(w io.Writer) {
 	fmt.Fprint(w, `	ufw)
-		if [[ $cword -eq 2 ]]; then
+		if [[ $ecword -eq 2 ]]; then
 			mapfile -t COMPREPLY < <(compgen -W 'check masq-check help -h --help' -- "$cur")
-		elif [[ ${COMP_WORDS[2]} == check ]]; then
+		elif [[ ${COMP_WORDS[$((_z_panel_cmd_start+1))]} == check ]]; then
 			if [[ $cur == -* ]]; then
 				mapfile -t COMPREPLY < <(compgen -W '--full --lan-cidr --lan-dev' -- "$cur")
 			else
 				mapfile -t COMPREPLY < <(compgen -W "$(_z_panel_interfaces)" -- "$cur")
 			fi
-		elif [[ ${COMP_WORDS[2]} == masq-check ]]; then
+		elif [[ ${COMP_WORDS[$((_z_panel_cmd_start+1))]} == masq-check ]]; then
 			if [[ $cur == -* ]]; then
 				mapfile -t COMPREPLY < <(compgen -W '--lan-cidr' -- "$cur")
 			else

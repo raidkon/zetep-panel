@@ -8,6 +8,8 @@ func english() map[string]string {
 		"root.help.top": `Top level:
   z-panel help | -h | --help     this summary (all commands)
   z-panel version | -v | --version
+  z-panel [--ssh=host | --ssh host] <command> …   local z-panel; run system tools on remote via ssh+sudo (no remote z-panel)
+  z-panel [--ssh-connect=host | --ssh-connect host] <command> …   run remote installed z-panel (daemon/config on that host)
   z-panel <command> [help | -h | --help]   help for one command
   z-panel <command> …            all arguments after the command name go to that command
 
@@ -19,12 +21,13 @@ Commands:
 
 		"root.need_root": "root privileges required (sudo)",
 
-		"install.help": `install [help] [<sshHost>]
-  Local: copies the binary to %s (chmod 755); requires root.
+		"install.help": `install [help]
+  Copies the binary to %s (chmod 755); requires root.
   If %s is missing — interactive prompts and saving settings.
-  Remote: scp, then one SSH session (-t): install and, if no config — config init (interactive).
+  Remote install (z-panel on host): z-panel --ssh-connect=user@host install
 
 `,
+		"install.err_remote_removed": "install: remote target %q is no longer supported — use: z-panel --ssh-connect=%s install",
 		"install.err.interrupted":       "interrupted (Ctrl+C)",
 		"install.err.interrupted_with":  "interrupted (Ctrl+C): %w",
 		"install.err.open_self":         "open self: %w",
@@ -33,10 +36,8 @@ Commands:
 		"install.err.rename":            "rename to %s: %w",
 		"install.err.config":            "config: %w",
 		"install.installed":             "installed: %s\n",
-		"install.warn_completion":       "warning: bash completion: %v\n",
-		"install.err.scp":             "scp: %w",
-		"install.err.ssh":             "ssh install/init: %w",
-		"install.remote_done":         "installed on %s: %s\n",
+		"install.new_version":           "New version: %s\n",
+		"install.old_version":           "Previous version: %s\n",
 
 		"installshell.err.home":   "home directory: %w",
 		"installshell.err.mkdir":  "mkdir: %w",
@@ -144,6 +145,7 @@ ufw [help] masq-check [--lan-cidr=CIDR] <interface>
 		"ufw.check.section_details": "=== What to address ===",
 		"ufw.check.no_issues_full":  "(no issues — full report below)",
 		"ufw.check.issue_no_iface":  "Tunnel interface not specified. Run: z-panel ufw check <interface> (and use --full for the full report).",
+		"ufw.check.err_ipt_split":     "could not separate ufw and iptables-save output (unexpected remote shell output).",
 		"ufw.check.issue_iptables":  "Could not read iptables nat table (iptables-save -t nat): %v",
 		"ufw.check.issue_no_ufw":    "Interface %q does not appear in ufw status verbose — UFW is not referencing this tunnel.",
 		"ufw.check.fix_no_ufw": `# Enable IP forwarding if needed: /etc/ufw/sysctl.conf → net.ipv4.ip_forward=1
@@ -245,6 +247,25 @@ xray-tun [help] down <interfaceName> ip
 		"bashcomp.line1": "# bash completion for z-panel (generated from z-panel commands)",
 		"bashcomp.line2": "# Install: z-panel install-shell; z-panel install runs this automatically (system-wide).",
 		"bashcomp.line3": "# Requires bash 4+; for system-wide install use the bash-completion package.",
+
+		"daemon.help": `daemon [help] [run]
+  run — foreground daemon: HTTP API on Unix socket %s, periodic config reload (full state reconcile TODO).
+  Requires root. Stop with SIGINT/SIGTERM.
+  With daemon = 1 in config.toml, subcommands are sent to this process when reachable (except: z-panel daemon …).
+
+`,
+		"daemon.err_unknown_subcmd": "daemon: unknown subcommand %q (expected: run)",
+		"daemon.fallback_warning":  "z-panel: daemon not reachable, running locally (start: z-panel daemon run)\n",
+
+		"transport.ssh.err_argv":      "z-panel: internal argv error\n",
+		"transport.ssh.err_duplicate": "z-panel: duplicate --ssh\n",
+		"transport.ssh.err_conflict":  "z-panel: use only one of --ssh or --ssh-connect\n",
+		"transport.ssh.err_empty":     "z-panel: empty --ssh host\n",
+		"transport.ssh.err_missing":   "z-panel: missing value after --ssh\n",
+		"transport.ssh.err_empty_connect": "z-panel: empty --ssh-connect host\n",
+		"transport.ssh.err_missing_connect": "z-panel: missing value after --ssh-connect\n",
+		"transport.ssh.err_no_cmd":    "z-panel: no subcommand after --ssh / --ssh-connect\n",
+		"transport.remote_forbidden":    "%s: not available with --ssh (runs tools over ssh without remote z-panel; use ufw or version; for install/config/daemon/xray-* run on the server)\n",
 	}
 }
 
@@ -256,6 +277,8 @@ func russian() map[string]string {
 		"root.help.top": `Верхний уровень:
   z-panel help | -h | --help     эта справка (сводка по всем командам)
   z-panel version | -v | --version
+  z-panel [--ssh=хост | --ssh хост] <команда> …   локальный z-panel; утилиты на удалённом хосте через ssh+sudo (без z-panel там)
+  z-panel [--ssh-connect=хост | --ssh-connect хост] <команда> …   запуск установленного на сервере z-panel (демон, конфиг там)
   z-panel <command> [help | -h | --help]   справка только по команде
   z-panel <command> …            все аргументы после имени команды — в пакет команды
 
@@ -267,12 +290,13 @@ func russian() map[string]string {
 
 		"root.need_root": "нужны права root (sudo)",
 
-		"install.help": `install [help] [<sshHost>]
-  Локально: копирует бинарник в %s (chmod 755), нужен root.
+		"install.help": `install [help]
+  Копирует бинарник в %s (chmod 755), нужен root.
   Если %s ещё нет — интерактивный опрос и сохранение настроек.
-  Удалённо: scp, затем одна SSH-сессия (-t): install и при отсутствии конфига — config init (интерактивно).
+  Установка на другой хост (z-panel на сервере): z-panel --ssh-connect=user@host install
 
 `,
+		"install.err_remote_removed": "install: удалённая установка с аргументом %q больше не поддерживается — используйте: z-panel --ssh-connect=%s install",
 		"install.err.interrupted":      "прервано (Ctrl+C)",
 		"install.err.interrupted_with": "прервано (Ctrl+C): %w",
 		"install.err.open_self":        "открыть себя: %w",
@@ -281,10 +305,8 @@ func russian() map[string]string {
 		"install.err.rename":           "переименовать в %s: %w",
 		"install.err.config":           "конфиг: %w",
 		"install.installed":            "установлено: %s\n",
-		"install.warn_completion":      "предупреждение: bash completion: %v\n",
-		"install.err.scp":            "scp: %w",
-		"install.err.ssh":            "ssh install/init: %w",
-		"install.remote_done":        "установлено на %s: %s\n",
+		"install.new_version":          "Новая версия: %s\n",
+		"install.old_version":          "Старая версия: %s\n",
 
 		"installshell.err.home":   "домашний каталог: %w",
 		"installshell.err.mkdir":  "mkdir: %w",
@@ -392,6 +414,7 @@ ufw [help] masq-check [--lan-cidr=CIDR] <интерфейс>
 		"ufw.check.section_details": "=== Что сделать ===",
 		"ufw.check.no_issues_full":  "(замечаний нет — ниже полный отчёт)",
 		"ufw.check.issue_no_iface":  "Не указан интерфейс туннеля. Запустите: z-panel ufw check <интерфейс> (и --full для полного вывода).",
+		"ufw.check.err_ipt_split":     "не удалось отделить вывод ufw и iptables-save (неожиданный вывод на удалённой стороне).",
 		"ufw.check.issue_iptables":  "Не удалось прочитать таблицу nat (iptables-save -t nat): %v",
 		"ufw.check.issue_no_ufw":    "Интерфейса %q нет в выводе «ufw status verbose» — UFW не ссылается на этот туннель.",
 		"ufw.check.fix_no_ufw": `# При необходимости: /etc/ufw/sysctl.conf → net.ipv4.ip_forward=1
@@ -489,6 +512,25 @@ xray-tun [help] down <interfaceName> ip
 		"state.summary_base":   "mode=%s table=%s fwmark=%s (wg-quick-стиль) default dev %s",
 		"state.summary_nomark": " no_bypass_mark=1",
 		"state.summary_bypass": " bypass_cgroup=1",
+
+		"daemon.help": `daemon [help] [run]
+  run — демон на переднем плане: HTTP API на Unix-сокете %s, периодическая перезагрузка конфига (полная сверка состояния — позже).
+  Нужен root. Остановка: SIGINT/SIGTERM.
+  При daemon = 1 в config.toml подкоманды уходят в этот процесс, если он доступен (исключение: z-panel daemon …).
+
+`,
+		"daemon.err_unknown_subcmd": "daemon: неизвестная подкоманда %q (ожидалось: run)",
+		"daemon.fallback_warning":  "z-panel: демон недоступен, выполняю локально (запуск: z-panel daemon run)\n",
+
+		"transport.ssh.err_argv":      "z-panel: внутренняя ошибка argv\n",
+		"transport.ssh.err_duplicate": "z-panel: повторный флаг --ssh\n",
+		"transport.ssh.err_conflict":  "z-panel: укажите только один из флагов --ssh или --ssh-connect\n",
+		"transport.ssh.err_empty":     "z-panel: пустой хост для --ssh\n",
+		"transport.ssh.err_missing":   "z-panel: нет значения после --ssh\n",
+		"transport.ssh.err_empty_connect": "z-panel: пустой хост для --ssh-connect\n",
+		"transport.ssh.err_missing_connect": "z-panel: нет значения после --ssh-connect\n",
+		"transport.ssh.err_no_cmd":    "z-panel: нет подкоманды после --ssh / --ssh-connect\n",
+		"transport.remote_forbidden":  "%s: недоступно с --ssh (команды на удалённом хосте через ssh+sudo без z-panel там; доступны ufw и version; install/config/daemon/xray-* — на самом сервере)\n",
 
 		"bashcomp.line1": "# bash completion для z-panel (генерируется из команд z-panel)",
 		"bashcomp.line2": "# Установка: z-panel install-shell; z-panel install выполняет это автоматически (системно).",
