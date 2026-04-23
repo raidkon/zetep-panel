@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 
 	"z-panel/internal/i18n"
 	"z-panel/internal/root"
@@ -35,45 +34,15 @@ func Down(iface string) error {
 
 func downWG(st state.File) error {
 	removeWGStyleFirewall(st.Interface)
-	table := st.Table
-	for strings.Contains(ipRuleShow("-4"), "lookup "+table) {
-		runIPQuiet("ip", "-4", "rule", "delete", "table", table)
-	}
-	for strings.Contains(ipRuleShow("-4"), "suppress_prefixlength 0") {
-		runIPQuiet("ip", "-4", "rule", "delete", "table", "main", "suppress_prefixlength", "0")
-	}
-	if st.WGIPv6 {
-		for strings.Contains(ipRuleShow("-6"), "lookup "+table) {
-			runIPQuiet("ip", "-6", "rule", "delete", "table", table)
-		}
-		for strings.Contains(ipRuleShow("-6"), "suppress_prefixlength 0") {
-			runIPQuiet("ip", "-6", "rule", "delete", "table", "main", "suppress_prefixlength", "0")
-		}
-	}
-	ipRouteFlushTableQuiet(table)
+	removeXrayRedirectPolicyRouting(st.Table, st.WGIPv6)
 	_ = os.Remove(state.Path(st.Interface))
-	fmt.Printf(i18n.T("redirect.down_done"), table, st.Interface)
+	fmt.Printf(i18n.T("redirect.down_done"), st.Table, st.Interface)
 	return nil
 }
 
 func downWGQuick(st state.File, ipv6 bool) error {
 	removeWGStyleFirewall(st.Interface)
-	table := st.Table
-	for strings.Contains(ipRuleShow("-4"), "lookup "+table) {
-		runIPQuiet("ip", "-4", "rule", "delete", "table", table)
-	}
-	for strings.Contains(ipRuleShow("-4"), "suppress_prefixlength 0") {
-		runIPQuiet("ip", "-4", "rule", "delete", "table", "main", "suppress_prefixlength", "0")
-	}
-	if ipv6 {
-		for strings.Contains(ipRuleShow("-6"), "lookup "+table) {
-			runIPQuiet("ip", "-6", "rule", "delete", "table", table)
-		}
-		for strings.Contains(ipRuleShow("-6"), "suppress_prefixlength 0") {
-			runIPQuiet("ip", "-6", "rule", "delete", "table", "main", "suppress_prefixlength", "0")
-		}
-	}
-	ipRouteFlushTableQuiet(table)
+	removeXrayRedirectPolicyRouting(st.Table, ipv6)
 	_ = os.Remove(state.Path(st.Interface))
 	return nil
 }

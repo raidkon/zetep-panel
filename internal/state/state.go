@@ -21,6 +21,9 @@ type File struct {
 	NoBypassMark bool   `json:"no_bypass_mark,omitempty"`
 	BypassCgroup string `json:"bypass_cgroup,omitempty"`
 	BypassUnit   string `json:"bypass_unit,omitempty"`
+	// optional policy: "from <WanCIDR> lookup main" for inbound services on a public / WAN IP
+	WanRulePref int    `json:"wan_rule_pref,omitempty"`
+	WanFromCIDR string `json:"wan_from_cidr,omitempty"`
 }
 
 func Path(iface string) string {

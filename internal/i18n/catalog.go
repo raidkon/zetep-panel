@@ -24,10 +24,18 @@ Commands:
 		"install.help": `install [help]
   Copies the binary to %s (chmod 755); requires root.
   If %s is missing — interactive prompts and saving settings.
-  Remote install (z-panel on host): z-panel --ssh-connect=user@host install
+  From your PC (upload this binary, then run install on the host; needs scp and ssh):
+    z-panel --ssh=user@host install
+  If z-panel is already on the server only (no local upload): z-panel --ssh-connect=user@host install
 
 `,
-		"install.err_remote_removed": "install: remote target %q is no longer supported — use: z-panel --ssh-connect=%s install",
+		"install.err_remote_removed":  "install: unexpected argument %q (local: sudo z-panel install; remote from this machine: z-panel --ssh=host install with no extra args; on server only: z-panel --ssh-connect=host install)",
+		"install.err.extra_with_ssh":  "install: extra argument %q with --ssh (use: z-panel --ssh=host install)",
+		"install.err.need_scp":          "install: scp not found in PATH (needed for z-panel --ssh=… install)",
+		"install.err.need_ssh":          "install: ssh not found in PATH (needed for z-panel --ssh=… install)",
+		"install.err.scp":               "install: scp: %w",
+		"install.err.ssh_run":         "install: ssh: %w",
+		"install.ssh.uploading":       "install: copying this binary to %s:%s …\n",
 		"install.err.interrupted":       "interrupted (Ctrl+C)",
 		"install.err.interrupted_with":  "interrupted (Ctrl+C): %w",
 		"install.err.open_self":         "open self: %w",
@@ -103,6 +111,7 @@ xray-redirect [help] down <interface>
     --table=N               table and fwmark (default %s)
     --no-mark               no cgroup mark
     --ipv6                  default ::/0 and IPv6 rules
+    --wan-lookup=auto|off|IP[/mask]  "from <WAN> lookup main" for inbound on a public address (default auto)
   Examples:
     sudo z-panel xray-redirect up xray2tun
     sudo z-panel xray-redirect up --bypass-unit=sing-box xray2tun
@@ -237,6 +246,11 @@ xray-tun [help] down <interfaceName> ip
 		"redirect.cg_empty":          "ControlGroup empty for %q — unit not active",
 		"redirect.auto_unit":         "z-panel: auto-selected systemd unit for cgroup: %s\n",
 		"redirect.auto_fail":         "could not auto-detect unit (tried %v): %w; set --bypass-unit=… or --bypass-cgroup=…",
+		"redirect.wan_line":          "z-panel: ip rule pref %d: from %s lookup main (WAN bypass for services on a public / uplink address)\n",
+		"redirect.wan_auto_err":        "z-panel: --wan-lookup=auto: failed to read IPv4 main table: %v\n",
+		"redirect.wan_auto_skip":       "z-panel: --wan-lookup=auto: no public IPv4 on default in table main (tun %q) — skip WAN main rule; set --wan-lookup=IP/32 or fix routing\n",
+		"redirect.err.wan_cidr":        "invalid --wan-lookup",
+		"redirect.err.wan_rule":        "ip rule (from WAN, lookup main): %v",
 
 		"state.state_file_err": "state file: %w",
 		"state.up_line":        "up: %s (state %s)\n",
@@ -265,7 +279,7 @@ xray-tun [help] down <interfaceName> ip
 		"transport.ssh.err_empty_connect": "z-panel: empty --ssh-connect host\n",
 		"transport.ssh.err_missing_connect": "z-panel: missing value after --ssh-connect\n",
 		"transport.ssh.err_no_cmd":    "z-panel: no subcommand after --ssh / --ssh-connect\n",
-		"transport.remote_forbidden":    "%s: not available with --ssh (runs tools over ssh without remote z-panel; use ufw or version; for install/config/daemon/xray-* run on the server)\n",
+		"transport.remote_forbidden":    "%s: not available with --ssh (for install from this machine use: z-panel --ssh=host install; otherwise run on the server or use ufw / version; config/daemon/xray-* — on the host or --ssh-connect)\n",
 	}
 }
 
@@ -293,10 +307,18 @@ func russian() map[string]string {
 		"install.help": `install [help]
   Копирует бинарник в %s (chmod 755), нужен root.
   Если %s ещё нет — интерактивный опрос и сохранение настроек.
-  Установка на другой хост (z-panel на сервере): z-panel --ssh-connect=user@host install
+  С этой машины (залить этот бинарник и выполнить install на хосте; нужны scp и ssh):
+    z-panel --ssh=user@host install
+  Если z-panel только на сервере (без заливки с ПК): z-panel --ssh-connect=user@host install
 
 `,
-		"install.err_remote_removed": "install: удалённая установка с аргументом %q больше не поддерживается — используйте: z-panel --ssh-connect=%s install",
+		"install.err_remote_removed":  "install: лишний аргумент %q (локально: sudo z-panel install; с этой машины: z-panel --ssh=хост install без лишних аргументов; только на сервере: z-panel --ssh-connect=хост install)",
+		"install.err.extra_with_ssh":  "install: лишний аргумент %q с --ssh (нужно: z-panel --ssh=хост install)",
+		"install.err.need_scp":          "install: в PATH нет scp (нужен для z-panel --ssh=… install)",
+		"install.err.need_ssh":          "install: в PATH нет ssh (нужен для z-panel --ssh=… install)",
+		"install.err.scp":               "install: scp: %w",
+		"install.err.ssh_run":         "install: ssh: %w",
+		"install.ssh.uploading":       "install: копирование этого бинарника на %s:%s …\n",
 		"install.err.interrupted":      "прервано (Ctrl+C)",
 		"install.err.interrupted_with": "прервано (Ctrl+C): %w",
 		"install.err.open_self":        "открыть себя: %w",
@@ -372,6 +394,7 @@ xray-redirect [help] down <interface>
     --table=N               таблица и fwmark (по умолчанию %s)
     --no-mark               без пометки cgroup
     --ipv6                  default ::/0 и правила IPv6
+    --wan-lookup=auto|off|IP[/маска]  «from <WAN> lookup main» для входа на публичный адрес (по умолчанию auto)
   Примеры:
     sudo z-panel xray-redirect up xray2tun
     sudo z-panel xray-redirect up --bypass-unit=sing-box xray2tun
@@ -506,6 +529,11 @@ xray-tun [help] down <interfaceName> ip
 		"redirect.cg_empty":          "ControlGroup пуст для %q — юнит не активен",
 		"redirect.auto_unit":         "z-panel: авто-выбран systemd-юнит для cgroup: %s\n",
 		"redirect.auto_fail":         "не удалось авто-определить юнит (пробовали %v): %w; укажите --bypass-unit=… или --bypass-cgroup=…",
+		"redirect.wan_line":          "z-panel: ip rule pref %d: from %s lookup main (обход: входящие на публичный/uplink-адрес)\n",
+		"redirect.wan_auto_err":        "z-panel: --wan-lookup=auto: не удалось прочитать main (IPv4): %v\n",
+		"redirect.wan_auto_skip":       "z-panel: --wan-lookup=auto: нет подходящего IPv4 на default в main (tun %q) — пропуск правила; задайте --wan-lookup=IP/32 или маршрут\n",
+		"redirect.err.wan_cidr":        "неверный --wan-lookup",
+		"redirect.err.wan_rule":        "ip rule (from WAN, lookup main): %v",
 
 		"state.state_file_err": "файл состояния: %w",
 		"state.up_line":        "up: %s (state %s)\n",
@@ -530,7 +558,7 @@ xray-tun [help] down <interfaceName> ip
 		"transport.ssh.err_empty_connect": "z-panel: пустой хост для --ssh-connect\n",
 		"transport.ssh.err_missing_connect": "z-panel: нет значения после --ssh-connect\n",
 		"transport.ssh.err_no_cmd":    "z-panel: нет подкоманды после --ssh / --ssh-connect\n",
-		"transport.remote_forbidden":  "%s: недоступно с --ssh (команды на удалённом хосте через ssh+sudo без z-panel там; доступны ufw и version; install/config/daemon/xray-* — на самом сервере)\n",
+		"transport.remote_forbidden":  "%s: недоступно с --ssh (установка с этой машины: z-panel --ssh=хост install; иначе — на сервере или ufw / version; config/daemon/xray-* — на хосте или --ssh-connect)\n",
 
 		"bashcomp.line1": "# bash completion для z-panel (генерируется из команд z-panel)",
 		"bashcomp.line2": "# Установка: z-panel install-shell; z-panel install выполняет это автоматически (системно).",

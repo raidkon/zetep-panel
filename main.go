@@ -36,10 +36,15 @@ func init() {
 
 func main() {
 	i18n.Init()
-	remoteMode, sshHost, rest, err := transport.ParseSSHFromArgs(os.Args)
+	os.Exit(runMain(os.Args))
+}
+
+// runMain implements the root command flow; returns an exit code (process should not call os.Exit).
+func runMain(args []string) int {
+	remoteMode, sshHost, rest, err := transport.ParseSSHFromArgs(args)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		os.Exit(2)
+		return 2
 	}
 	switch remoteMode {
 	case transport.RemoteZPanelBinary:
@@ -50,21 +55,21 @@ func main() {
 		i18n.ApplyFromConfig(settings.C.Language)
 		if len(rest) < 2 {
 			app.PrintRootHelp(os.Stdout)
-			os.Exit(0)
+			return 0
 		}
 		arg1 := rest[1]
 		if arg1 == "help" || arg1 == "-h" || arg1 == "--help" {
 			app.PrintRootHelp(os.Stdout)
-			os.Exit(0)
+			return 0
 		}
 		if err := transport.RunZPanelOverSSH(sshHost, rest); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			if code, ok := executil.ExitCode(err); ok {
-				os.Exit(code)
+				return code
 			}
-			os.Exit(1)
+			return 1
 		}
-		return
+		return 0
 	case transport.RemoteLocalTools:
 		if os.Getenv("Z_PANEL_NO_BANNER") == "" {
 			fmt.Fprintf(os.Stderr, "z-panel %s\n", config.Version)
@@ -78,35 +83,35 @@ func main() {
 		i18n.ApplyFromConfig(settings.C.Language)
 		if len(rest) < 2 {
 			app.PrintRootHelp(os.Stdout)
-			os.Exit(0)
+			return 0
 		}
 		arg1 := rest[1]
 		if arg1 == "help" || arg1 == "-h" || arg1 == "--help" {
 			app.PrintRootHelp(os.Stdout)
-			os.Exit(0)
+			return 0
 		}
 		if arg1 == "-v" || arg1 == "--version" {
 			arg1 = "version"
 		}
 		switch arg1 {
-		case "install", "install-shell", "config", "daemon", "xray-tun", "xray-redirect":
+		case "install-shell", "config", "daemon", "xray-tun", "xray-redirect":
 			fmt.Fprint(os.Stderr, i18n.T("transport.remote_forbidden", arg1))
-			os.Exit(1)
+			return 1
 		}
 		cmd := app.FindCommand(arg1)
 		if cmd == nil {
 			fmt.Fprint(os.Stderr, i18n.T("root.unknown_command", arg1))
 			app.PrintRootHelp(os.Stdout)
-			os.Exit(1)
+			return 1
 		}
 		if err := cmd.Run(rest[2:]); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			if code, ok := executil.ExitCode(err); ok {
-				os.Exit(code)
+				return code
 			}
-			os.Exit(1)
+			return 1
 		}
-		return
+		return 0
 	}
 
 	if os.Getenv("Z_PANEL_NO_BANNER") == "" {
@@ -114,15 +119,15 @@ func main() {
 	}
 	if err := settings.Load(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		return 1
 	}
 	i18n.ApplyFromConfig(settings.C.Language)
 
 	skipDaemon := os.Getenv("Z_PANEL_SKIP_DAEMON") != ""
-	if !skipDaemon && len(os.Args) >= 2 && settings.C.DaemonEnabled() && !daemon.ForbiddenRemote(os.Args[1]) {
-		err := client.Forward(os.Args[1:])
+	if !skipDaemon && len(args) >= 2 && settings.C.DaemonEnabled() && !daemon.ForbiddenRemote(args[1]) {
+		err := client.Forward(args[1:])
 		if err == nil {
-			return
+			return 0
 		}
 		if client.IsUnavailable(err) {
 			fmt.Fprintf(os.Stderr, "%s", i18n.T("daemon.fallback_warning"))
@@ -130,21 +135,21 @@ func main() {
 		} else {
 			fmt.Fprintln(os.Stderr, err)
 			if code, ok := client.ExitStatus(err); ok {
-				os.Exit(code)
+				return code
 			}
-			os.Exit(1)
+			return 1
 		}
 	}
 
-	if len(os.Args) < 2 {
+	if len(args) < 2 {
 		app.PrintRootHelp(os.Stdout)
-		os.Exit(0)
+		return 0
 	}
 
-	arg1 := os.Args[1]
+	arg1 := args[1]
 	if arg1 == "help" || arg1 == "-h" || arg1 == "--help" {
 		app.PrintRootHelp(os.Stdout)
-		os.Exit(0)
+		return 0
 	}
 
 	if arg1 == "-v" || arg1 == "--version" {
@@ -153,13 +158,14 @@ func main() {
 
 	cmd := app.FindCommand(arg1)
 	if cmd == nil {
-		fmt.Fprint(os.Stderr, i18n.T("root.unknown_command", os.Args[1]))
+		fmt.Fprint(os.Stderr, i18n.T("root.unknown_command", args[1]))
 		app.PrintRootHelp(os.Stdout)
-		os.Exit(1)
+		return 1
 	}
 
-	if err := cmd.Run(os.Args[2:]); err != nil {
+	if err := cmd.Run(args[2:]); err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		return 1
 	}
+	return 0
 }

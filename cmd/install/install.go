@@ -1,6 +1,8 @@
 package install
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -11,6 +13,7 @@ import (
 	"z-panel/cmd/installshell"
 	"z-panel/internal/app"
 	"z-panel/internal/config"
+	"z-panel/internal/executil"
 	"z-panel/internal/i18n"
 	"z-panel/internal/root"
 	"z-panel/internal/settings"
@@ -27,8 +30,14 @@ func (c *Cmd) Run(args []string) error {
 		c.Help(os.Stdout)
 		return nil
 	}
+	if executil.RemoteSSHHost() != "" {
+		if len(args) >= 1 {
+			return fmt.Errorf("%s", i18n.T("install.err.extra_with_ssh", args[0]))
+		}
+		return installOverSSH()
+	}
 	if len(args) >= 1 {
-		return fmt.Errorf("%s", i18n.T("install.err_remote_removed", args[0], args[0]))
+		return fmt.Errorf("%s", i18n.T("install.err_remote_removed", args[0]))
 	}
 	return localInstall()
 }
@@ -116,4 +125,39 @@ func localInstall() error {
 		return fmt.Errorf(i18n.T("install.err.config"), err)
 	}
 	return installshell.InstallSystem()
+}
+
+func installOverSSH() error {
+	host := strings.TrimSpace(executil.RemoteSSHHost())
+	if _, err := exec.LookPath("scp"); err != nil {
+		return fmt.Errorf("%s", i18n.T("install.err.need_scp"))
+	}
+	if _, err := exec.LookPath("ssh"); err != nil {
+		return fmt.Errorf("%s", i18n.T("install.err.need_ssh"))
+	}
+	self, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("os.Executable: %w", err)
+	}
+	self, err = filepath.EvalSymlinks(self)
+	if err != nil {
+		return fmt.Errorf("EvalSymlinks: %w", err)
+	}
+	b := make([]byte, 8)
+	if _, err := rand.Read(b); err != nil {
+		return err
+	}
+	remote := "/tmp/z-panel-stg-" + hex.EncodeToString(b)
+	fmt.Fprintf(os.Stderr, i18n.T("install.ssh.uploading"), host, remote)
+	scp := exec.Command("scp", self, host+":"+remote)
+	if err := executil.RunAttachedInterruptible(scp); err != nil {
+		return fmt.Errorf(i18n.T("install.err.scp"), err)
+	}
+	defer func() { _ = exec.Command("ssh", host, "rm", "-f", remote).Run() }()
+	script := "chmod 755 " + remote + " && sudo " + remote + " install"
+	cmd := exec.Command("ssh", "-t", host, script)
+	if err := executil.RunAttachedInterruptible(cmd); err != nil {
+		return fmt.Errorf(i18n.T("install.err.ssh_run"), err)
+	}
+	return nil
 }

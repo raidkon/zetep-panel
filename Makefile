@@ -1,11 +1,10 @@
-# Default: plain go build uses Version from internal/config/config.go.
-# With git: embeds `git describe --tags --always --dirty` so each commit changes the reported version.
-GIT := $(shell git describe --tags --always --dirty 2>/dev/null)
-LDFLAGS := $(if $(GIT),-ldflags '-X z-panel/internal/config.Version=$(GIT)')
-
-.PHONY: build test
-build:
-	go build $(LDFLAGS) -o z-panel .
-
+# Merged statement coverage across the whole module (includes main).
+COVERPKG=./...
+.PHONY: test cover
 test:
 	go test ./...
+
+cover:
+	go test ./... -coverpkg=$(COVERPKG) -coverprofile=coverage.out
+	go tool cover -func=coverage.out | grep '^total'
+	@echo "HTML: go tool cover -html=coverage.out"

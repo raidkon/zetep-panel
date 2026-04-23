@@ -12,15 +12,24 @@ sudo z-panel install
 - If `/etc/z-panel/config.toml` is missing, runs **`z-panel config init`** interactively.
 - If the config exists but is older than the built-in schema, runs **`z-panel config migrate`** (with confirmation).
 
-## Remote install
+## Remote install (from your machine: upload this binary, then install on the host)
 
 ```bash
 z-panel --ssh=user@host install
 ```
 
-- Runs **`ssh -t user@host sudo z-panel install`** from your machine; the remote side performs the same steps as a local install (including `config init` / `config migrate` when needed).
+- Copies **this** `z-panel` binary to the host with **`scp`**, then runs **`ssh -t user@host`** with `chmod` and *
+  *`sudo /tmp/… install`**, so the same steps run on the **remote** system as a local `sudo z-panel install` (including
+  `config init` / `config migrate` when needed).
+- Requires **`ssh`** and **`scp`** in `PATH` on the client.
 
-Requires `ssh` in `PATH` on the client.
+If the program is **already** installed on the server and you are not replacing it from the client, use:
+
+```bash
+z-panel --ssh-connect=user@host install
+```
+
+(runs the **remote** `z-panel` on the host — it copies that binary to the install path, not your local build.)
 
 ## Help
 

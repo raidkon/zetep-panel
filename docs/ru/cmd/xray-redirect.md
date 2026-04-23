@@ -2,6 +2,10 @@
 
 Управляет стеком **полного туннеля / redirect**: policy routing (`ip rule` / таблица маршрутизации), `suppress_prefixlength`, маршрут по умолчанию через туннель, sysctl `src_valid_mark`, правила nft против утечек и при необходимости маркировка исходящего трафика через **cgroup v2** (iptables `cgroup`), в духе **wg-quick**.
 
+Повторный **`up` идемпотентен** для правил z-panel: перед установкой снимаются старые policy-правила, маршруты в таблице
+туннеля и помеченный nft/iptables, затем применяется **один** набор (без копий `ip rule` от многократного `up` без
+`down`).
+
 ## Подкоманды
 
 ```bash
@@ -14,6 +18,9 @@ sudo z-panel xray-redirect down <interface>
 - `--table=N` — таблица маршрутизации и fwmark (по умолчанию из конфига)
 - `--no-mark` — отключить путь маркировки cgroup
 - `--ipv6` — IPv6 default `::/0` и правила для IPv6
+- `--wan-lookup=auto|off|IP[/маска]` — правило `from <WAN> lookup main` *до* `not fwmark → table`, чтобы ответы с
+  публичного / uplink IPv4 не уезжали в туннель. По умолчанию: `auto`. `off` — не добавлять; явный IP — если авто
+  неверно.
 - `--bypass-unit=auto|…` — systemd-юнит, чей cgroup используется для обхода
 - `--bypass-cgroup=path` — явный путь cgroup v2 от корня иерархии
 

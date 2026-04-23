@@ -17,7 +17,7 @@ type RemoteMode int
 const (
 	// RemoteNone: normal local execution (no --ssh / --ssh-connect).
 	RemoteNone RemoteMode = iota
-	// RemoteLocalTools: --ssh — local z-panel binary; subcommands run system tools on the remote host via ssh+sudo (no remote z-panel install).
+	// RemoteLocalTools: --ssh — local z-panel; most subcommands run system tools on the remote host via ssh+sudo; install=scp this binary and sudo z-panel install on the host.
 	RemoteLocalTools
 	// RemoteZPanelBinary: --ssh-connect — run the remote installed z-panel (e.g. daemon on that host).
 	RemoteZPanelBinary

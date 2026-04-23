@@ -1,10 +1,12 @@
 package state
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"z-panel/internal/i18n"
 	"z-panel/internal/settings"
 )
 
@@ -26,5 +28,20 @@ func TestPartial(t *testing.T) {
 	f := Partial("eth0", "51843", "wg", true)
 	if f.Interface != "eth0" || f.Table != "51843" || f.Mode != "wg" || !f.WGIPv6 {
 		t.Fatalf("%+v", f)
+	}
+}
+
+func TestWriteAndPrint(t *testing.T) {
+	_ = os.Setenv("Z_PANEL_LANG", "en")
+	i18n.Init()
+	dir := t.TempDir()
+	t.Cleanup(func() { settings.C = nil })
+	settings.C = &settings.Cfg{StateDir: dir}
+	st := Partial("tun9", "1", "wg", false)
+	if err := WriteAndPrint(st, "ok"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(Path("tun9")); err != nil {
+		t.Fatal(err)
 	}
 }

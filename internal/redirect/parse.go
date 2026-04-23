@@ -14,6 +14,9 @@ type UpOptions struct {
 	BypassCgroup string
 	NoMark       bool
 	IPv6         bool
+	// WanLookup: "" (default) = same as "auto" — "from <WAN> lookup main" to fix inbound on public IP with cgroup mark.
+	// "off" disables. Otherwise explicit IPv4 or CIDR (e.g. 203.0.113.1/32).
+	WanLookup string
 }
 
 // ParseUpArgs parses flags and one positional interface name.
@@ -51,6 +54,14 @@ func ParseUpArgs(args []string) (iface string, opts UpOptions, err error) {
 			}
 			i++
 			opts.BypassUnit = args[i]
+		case strings.HasPrefix(a, "--wan-lookup="):
+			opts.WanLookup = strings.TrimSpace(strings.TrimPrefix(a, "--wan-lookup="))
+		case a == "--wan-lookup":
+			if i+1 >= len(args) {
+				return "", opts, fmt.Errorf(i18n.T("redirect.need_value_after"), a)
+			}
+			i++
+			opts.WanLookup = strings.TrimSpace(args[i])
 		case strings.HasPrefix(a, "-"):
 			return "", opts, fmt.Errorf(i18n.T("redirect.unknown_flag"), a)
 		default:
