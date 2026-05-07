@@ -10,8 +10,8 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	_ = os.Setenv("Z_PANEL_LANG", "en")
 	i18n.Init()
+	i18n.ApplyFromConfig("en")
 	if err := settings.Load(); err != nil {
 		// /etc/z-panel/config.toml may be unreadable in CI — still set C on success path only
 		_ = err

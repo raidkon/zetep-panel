@@ -55,7 +55,7 @@ func zhStrings() map[string]string {
 		"confcmd.help": `config [help] init [--force|-f]
   交互式创建或覆盖 %s（--force）。
 config [help] migrate
-  升级 z-panel 后应用新配置项（仅对新 schema 版本交互询问）。
+  加载配置；如需升级 schema，在每次 z-panel 启动时会自动迁移。
 
 `,
 
@@ -69,7 +69,8 @@ config [help] migrate
 		"settings.err.parse":              "解析 %s：%w",
 		"settings.err.mkdir":              "mkdir %s：%w",
 		"settings.err.write":              "写入 %s：%w",
-		"settings.config_hdr":             "# z-panel — 配置\n\n",
+		"settings.err.migrate_persist":    "无法保存配置 schema 迁移",
+		"settings.config_hdr":             "# z-panel — 配置\n# 所有 z-panel 设置仅来自本文件（不使用 Z_PANEL_* 环境变量）。\n# language=auto 时遵循系统 LANGUAGE / LC_* / LANG。\n\n",
 		"settings.init_exists":            "配置已存在：%s（覆盖请用：z-panel config init --force）\n",
 		"settings.init_intro":             "z-panel 设置 — 输入值或按 Enter 使用默认值。",
 		"settings.saved":                  "\n已保存：%s\n",
@@ -85,6 +86,9 @@ config [help] migrate
 		"settings.migrate_intro":          "此配置由较旧版本的 z-panel 写入。请为新选项设置值。",
 		"settings.migrate_uptodate":       "配置 schema 已是最新。",
 		"settings.migrate_no_file":        "%s：未找到配置文件（请运行 z-panel config init）",
+		"settings.migrate_auto_stderr":    "z-panel：已升级配置 schema %d → %d（%s）\n",
+		"settings.migrate_completed":      "已应用配置 schema 迁移（版本 %d）。\n",
+		"settings.migrate_deferred":       "z-panel：磁盘上 schema 为 %d（需要 %d）。请以 root 保存，例如 sudo z-panel version — %s\n",
 
 		"xrayredirect.want_up_down":    "应为：z-panel xray-redirect up|down …（见 z-panel xray-redirect help）",
 		"xrayredirect.want_down_iface": "应为：z-panel xray-redirect down <interface>",

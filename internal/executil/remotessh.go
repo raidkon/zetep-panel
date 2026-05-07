@@ -8,20 +8,7 @@ import (
 	"strings"
 )
 
-// EnvSSHHost is set by main for: z-panel --ssh=host <subcommand> … (local binary; tools on remote via ssh+sudo).
-// Not set for --ssh-connect (remote z-panel binary over ssh).
-// Child commands use Command / CommandTTY to run tools on the remote host without a remote z-panel install.
-const EnvSSHHost = "Z_PANEL_SSH_HOST"
-
-// EnvSSHNoTTY, if set, omits ssh -t (NOPASSWD sudo, non-interactive).
-const EnvSSHNoTTY = "Z_PANEL_SSH_NO_TTY"
-
-// RemoteSSHHost returns the SSH target when running with --ssh, or empty for local or --ssh-connect execution.
-func RemoteSSHHost() string {
-	return os.Getenv(EnvSSHHost)
-}
-
-// shellSingleQuote wraps s in POSIX single quotes; embedded ' become '\''.
+// shellSingleQuote wraps s in POSIX single quotes; embedded ' become '\”.
 func shellSingleQuote(s string) string {
 	if !strings.Contains(s, "'") {
 		return "'" + s + "'"
@@ -43,10 +30,10 @@ func shellSingleQuote(s string) string {
 // OpenSSH joins each argv after host with spaces into one exec line — do not pass a multiword -c script as separate argv.
 func sshRemote(host string, withTTY bool, remoteWords ...string) *exec.Cmd {
 	var args []string
-	if mux := os.Getenv(EnvSSHMux); mux != "" {
+	if mux := sshControlPathForDial(); mux != "" {
 		args = append(args, "-S", mux)
 	}
-	if withTTY && os.Getenv(EnvSSHNoTTY) == "" {
+	if withTTY && sshWantTTY() {
 		args = append(args, "-t")
 	}
 	args = append(args, host)
@@ -57,10 +44,10 @@ func sshRemote(host string, withTTY bool, remoteWords ...string) *exec.Cmd {
 // sshRemoteQuoted runs: ssh … host "one remote shell command line" (one argv after host).
 func sshRemoteQuoted(host string, withTTY bool, remoteLine string) *exec.Cmd {
 	var args []string
-	if mux := os.Getenv(EnvSSHMux); mux != "" {
+	if mux := sshControlPathForDial(); mux != "" {
 		args = append(args, "-S", mux)
 	}
-	if withTTY && os.Getenv(EnvSSHNoTTY) == "" {
+	if withTTY && sshWantTTY() {
 		args = append(args, "-t")
 	}
 	args = append(args, host, remoteLine)
@@ -79,7 +66,7 @@ func Command(name string, arg ...string) *exec.Cmd {
 
 // CommandTTY is like Command but uses ssh -t on the remote host so sudo can use a TTY for a password.
 // Without -t, sudo often prints "A terminal is required to authenticate" and exits 1.
-// If sudo is NOPASSWD for these commands, set Z_PANEL_SSH_NO_TTY=1 to omit -t.
+// If sudo is NOPASSWD for these commands, set ssh_no_tty=true in config.toml to omit -t.
 func CommandTTY(name string, arg ...string) *exec.Cmd {
 	if h := RemoteSSHHost(); h != "" {
 		words := append([]string{"sudo", name}, arg...)
@@ -90,7 +77,7 @@ func CommandTTY(name string, arg ...string) *exec.Cmd {
 	return exec.Command(name, arg...)
 }
 
-// RunTTYCombined runs CommandTTY and returns captured stdout+stderr. When Z_PANEL_SSH_HOST
+// RunTTYCombined runs CommandTTY and returns captured stdout+stderr. When RemoteSSHHost
 // is set, output is also copied to the terminal: CombinedOutput() would hide sudo/ssh
 // prompts and block the password on stdin, so we MultiWriter to os.Stdout/os.Stderr.
 func RunTTYCombined(name string, arg ...string) ([]byte, error) {
@@ -113,7 +100,7 @@ func RunTTYCombinedScript(script string) ([]byte, error) {
 		return exec.Command("sh", "-c", script).CombinedOutput()
 	}
 	h := RemoteSSHHost()
-	withTTY := os.Getenv(EnvSSHNoTTY) == ""
+	withTTY := sshWantTTY()
 	// One ssh argv: sudo sh -c '…' — not ssh … sudo sh -c <unquoted>, or OpenSSH joins argv with spaces and breaks -c.
 	remoteLine := "sudo sh -c " + shellSingleQuote(script)
 	cmd := sshRemoteQuoted(h, withTTY, remoteLine)

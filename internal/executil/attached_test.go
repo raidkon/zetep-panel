@@ -1,7 +1,6 @@
 package executil
 
 import (
-	"os"
 	"os/exec"
 	"testing"
 
@@ -9,8 +8,8 @@ import (
 )
 
 func TestRunAttachedInterruptible_trueExits(t *testing.T) {
-	_ = os.Setenv("Z_PANEL_LANG", "en")
 	i18n.Init()
+	i18n.ApplyFromConfig("en")
 	cmd := exec.Command("true")
 	if err := RunAttachedInterruptible(cmd); err != nil {
 		t.Fatal(err)

@@ -9,8 +9,7 @@ import (
 )
 
 func TestIpLinkExists_fakeIP(t *testing.T) {
-	t.Cleanup(func() { _ = os.Unsetenv(executil.EnvSSHHost) })
-	_ = os.Unsetenv(executil.EnvSSHHost)
+	t.Cleanup(executil.ResetSSHForTests)
 	dir := t.TempDir()
 	ip := filepath.Join(dir, "ip")
 	script := "#!/bin/sh\nif [ \"$1\" = link ]; then echo ok; fi\nexit 0\n"
@@ -24,7 +23,7 @@ func TestIpLinkExists_fakeIP(t *testing.T) {
 }
 
 func TestIpLinkExists_missingIface(t *testing.T) {
-	t.Cleanup(func() { _ = os.Unsetenv(executil.EnvSSHHost) })
+	t.Cleanup(executil.ResetSSHForTests)
 	dir := t.TempDir()
 	ip := filepath.Join(dir, "ip")
 	if err := os.WriteFile(ip, []byte("#!/bin/sh\nexit 1\n"), 0o755); err != nil {
@@ -37,7 +36,7 @@ func TestIpLinkExists_missingIface(t *testing.T) {
 }
 
 func TestRun_smoke(t *testing.T) {
-	t.Cleanup(func() { _ = os.Unsetenv(executil.EnvSSHHost) })
+	t.Cleanup(executil.ResetSSHForTests)
 	if err := run("true"); err != nil {
 		t.Fatal(err)
 	}

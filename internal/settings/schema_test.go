@@ -16,7 +16,7 @@ func TestEffectiveStoredSchema(t *testing.T) {
 	if EffectiveStoredSchema(2) != 2 {
 		t.Fatal()
 	}
-	if EffectiveStoredSchema(3) != 3 {
+	if EffectiveStoredSchema(4) != 4 {
 		t.Fatal()
 	}
 }
@@ -28,18 +28,15 @@ func TestConfigPath(t *testing.T) {
 	}
 }
 
-func TestDaemonEnabled(t *testing.T) {
+func TestApplySchemaUpgradesAuto(t *testing.T) {
 	t.Parallel()
-	var nilCfg *Cfg
-	if nilCfg.DaemonEnabled() {
-		t.Fatal()
+	c := Cfg{SchemaVersion: 1, Language: "en"}
+	stored := EffectiveStoredSchema(c.SchemaVersion)
+	if err := applySchemaUpgradesAuto(&c, stored); err != nil {
+		t.Fatal(err)
 	}
-	c := &Cfg{Daemon: 0}
-	if c.DaemonEnabled() {
-		t.Fatal()
-	}
-	c.Daemon = 1
-	if !c.DaemonEnabled() {
-		t.Fatal()
+	c.SchemaVersion = CurrentSchemaVersion
+	if c.SchemaVersion != CurrentSchemaVersion {
+		t.Fatalf("expected CurrentSchemaVersion %d, got %d", CurrentSchemaVersion, c.SchemaVersion)
 	}
 }

@@ -9,8 +9,8 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	_ = os.Setenv("Z_PANEL_LANG", "en")
 	i18n.Init()
+	i18n.ApplyFromConfig("en")
 	os.Exit(m.Run())
 }
 

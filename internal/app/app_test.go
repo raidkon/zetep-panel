@@ -3,7 +3,6 @@ package app
 import (
 	"bytes"
 	"io"
-	"os"
 	"testing"
 
 	"z-panel/internal/i18n"
@@ -57,8 +56,7 @@ func TestTopLevelCompletionWords_unique(t *testing.T) {
 
 func TestPrintRootHelp_smoke(t *testing.T) {
 	i18n.Init()
-	_ = os.Setenv("Z_PANEL_LANG", "en")
-	i18n.Init()
+	i18n.ApplyFromConfig("en")
 	settings.C = &settings.Cfg{UfwMarker: "z-panel"}
 	t.Cleanup(func() { registry = nil })
 	Register(stubCmd{name: "stub"})

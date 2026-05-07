@@ -16,8 +16,8 @@ func TestRunZPanelOverSSH_fakeSSH(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("PATH", dir)
-	t.Setenv("Z_PANEL_LANG", "en")
 	i18n.Init()
+	i18n.ApplyFromConfig("en")
 	err := RunZPanelOverSSH("u@h", []string{"/usr/local/bin/z-panel", "version"})
 	if err != nil {
 		t.Fatal(err)
@@ -25,8 +25,8 @@ func TestRunZPanelOverSSH_fakeSSH(t *testing.T) {
 }
 
 func TestRunZPanelOverSSH_errNoCmd(t *testing.T) {
-	_ = os.Setenv("Z_PANEL_LANG", "en")
 	i18n.Init()
+	i18n.ApplyFromConfig("en")
 	err := RunZPanelOverSSH("h", []string{"prog"})
 	if err == nil {
 		t.Fatal()
@@ -41,6 +41,7 @@ func TestRunZPanelOverSSH_usesRunAttached(t *testing.T) {
 	}
 	t.Setenv("PATH", dir)
 	i18n.Init()
+	i18n.ApplyFromConfig("en")
 	err := RunZPanelOverSSH("h", []string{"/bin/z", "x"})
 	code, ok := executil.ExitCode(err)
 	if !ok || code != 7 {

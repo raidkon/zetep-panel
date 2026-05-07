@@ -9,17 +9,12 @@ import (
 	"time"
 )
 
-// EnvSSHMux is the control socket path (OpenSSH -S) for an active ControlMaster; set while the multiplex is alive.
-const EnvSSHMux = "Z_PANEL_SSH_MUX"
-
-// EnvSSHNoMux, if non-empty, skips starting ControlMaster (one new TCP connection per ssh invocation).
-const EnvSSHNoMux = "Z_PANEL_SSH_NO_MUX"
-
 // TryStartSSHMultiplex starts an SSH ControlMaster (-fN) so all later ssh calls in this process can use
 // ssh -S socket … on the same host (one TCP session, less handshake). If OpenSSH is absent or the
 // master fails to start, returns (nil, nil) — callers should proceed without multiplex.
-func TryStartSSHMultiplex(host string) (stop func(), _ error) {
-	if host == "" || os.Getenv(EnvSSHNoMux) != "" {
+// When disableMux is true (e.g. ssh_no_multiplex in config), multiplex is not started.
+func TryStartSSHMultiplex(host string, disableMux bool) (stop func(), _ error) {
+	if host == "" || disableMux {
 		return nil, nil
 	}
 	dir, err := os.MkdirTemp("", "z-panel-ssh-mux-*")
@@ -52,9 +47,9 @@ func TryStartSSHMultiplex(host string) (stop func(), _ error) {
 		fmt.Fprintf(os.Stderr, "z-panel: ssh multiplex: control socket did not appear\n")
 		return nil, nil
 	}
-	_ = os.Setenv(EnvSSHMux, sock)
+	setSSHControlPath(sock)
 	return func() {
-		_ = os.Unsetenv(EnvSSHMux)
+		setSSHControlPath("")
 		c := exec.Command("ssh", "-o", "ControlPath="+sock, "-O", "exit", host)
 		c.Stderr = io.Discard
 		_ = c.Run()

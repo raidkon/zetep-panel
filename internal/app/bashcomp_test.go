@@ -2,7 +2,6 @@ package app
 
 import (
 	"bytes"
-	"os"
 	"os/exec"
 	"strings"
 	"testing"
@@ -12,8 +11,8 @@ import (
 )
 
 func TestWriteBashCompletionScript_smoke(t *testing.T) {
-	_ = os.Setenv("Z_PANEL_LANG", "en")
 	i18n.Init()
+	i18n.ApplyFromConfig("en")
 	settings.C = &settings.Cfg{UfwMarker: "z-panel"}
 	t.Cleanup(func() { registry = nil })
 	Register(stubCmd{name: "demo"})

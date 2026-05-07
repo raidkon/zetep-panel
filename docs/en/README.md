@@ -47,11 +47,12 @@ Configuration file: **`/etc/z-panel/config.toml`** (created by `z-panel config i
 
 Important fields include:
 
-- **`language`** — UI language: `auto` or one of `en`, `zh`, `hi`, `es`, `fr`, `ar`, `bn`, `pt`, `ru`, `ur`
+- **`language`** — UI language: `auto` or one of `en`, `zh`, `hi`, `es`, `fr`, `ar`, `bn`, `pt`, `ru`, `ur`. With `auto`, the process uses standard locale variables only: **`LANGUAGE`**, **`LC_ALL`**, **`LC_MESSAGES`**, **`LANG`** (no `Z_PANEL_*`).
+- **`no_banner`**, **`ssh_no_tty`**, **`ssh_no_multiplex`** — optional; see comments in the generated file header
 - **`schema_version`** — managed by the program; older configs trigger **`z-panel config migrate`** (or migration during `install`)
 - Routing table / fwmark, UFW templates, Xray TUN defaults — see interactive `config init` (single `config.toml`; `xray-redirect` state is stored there too)
 
-Environment overrides for language when `language = auto`: `Z_PANEL_LANG`, `LANGUAGE`, `LC_ALL`, `LC_MESSAGES`, `LANG`.
+All z-panel settings are read from **`config.toml` only**; there are no `Z_PANEL_*` environment variables for configuration or SSH routing.
 
 ## Command reference
 

@@ -1,7 +1,6 @@
 package settings
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -12,8 +11,8 @@ import (
 )
 
 // CurrentSchemaVersion must be incremented whenever new user-facing keys are added
-// to [Cfg] that should be prompted on upgrade. Register the matching step in schemaUpgrades.
-const CurrentSchemaVersion = 3
+// to [Cfg] that should be prompted on upgrade. Register the matching step in schemaUpgradesAuto.
+const CurrentSchemaVersion = 4
 
 // EffectiveStoredSchema maps on-disk schema_version: 0 / missing → 1 (legacy configs).
 func EffectiveStoredSchema(v int) int {
@@ -23,47 +22,44 @@ func EffectiveStoredSchema(v int) int {
 	return v
 }
 
-// schemaUpgrades must contain an entry for every version V with 1 < V <= CurrentSchemaVersion.
-var schemaUpgrades = map[int]func(*Cfg, *bufio.Reader, io.Writer){
-	2: schemaUpgradeV2,
-	3: schemaUpgradeV3,
+// schemaUpgradesAuto must contain an entry for every version V with 1 < V <= CurrentSchemaVersion.
+// Each step mutates [Cfg] in place; interactive prompts are not used — migration runs on Load().
+var schemaUpgradesAuto = map[int]func(*Cfg) error{
+	2: schemaUpgradeAutoV2,
+	3: schemaUpgradeAutoV3,
+	4: schemaUpgradeAutoV4,
 }
 
-func schemaUpgradeV2(c *Cfg, r *bufio.Reader, w io.Writer) {
-	c.Language = prompt(r, w, i18n.T("settings.prompt.language"), c.Language)
-}
-
-func schemaUpgradeV3(_ *Cfg, _ *bufio.Reader, _ io.Writer) {
-	// xray-redirect state moved from state_dir JSON files into config.toml [xray_redirect]; merge on Load.
-}
-
-func runSchemaMigration(stdin io.Reader, stdout io.Writer, path string, withIntro bool) error {
-	d := *C
-	r := bufio.NewReader(stdin)
-	if withIntro {
-		fmt.Fprintln(stdout, i18n.T("settings.migrate_intro"))
-		fmt.Fprintln(stdout)
-	}
-	stored := EffectiveStoredSchema(d.SchemaVersion)
-	for v := stored + 1; v <= CurrentSchemaVersion; v++ {
-		fn, ok := schemaUpgrades[v]
-		if !ok {
-			return fmt.Errorf("z-panel: missing schema upgrade step for version %d (program bug)", v)
-		}
-		fn(&d, r, stdout)
-	}
-	d.SchemaVersion = CurrentSchemaVersion
-	normalize(&d)
-	if err := Write(d); err != nil {
-		return err
-	}
-	i18n.ApplyFromConfig(C.Language)
-	fmt.Fprintf(stdout, i18n.T("settings.saved"), path)
+func schemaUpgradeAutoV2(*Cfg) error {
+	// Previously interactive language prompt; existing file values are kept as-is.
 	return nil
 }
 
-// MigrateInteractive updates config.toml when schema_version is older than [CurrentSchemaVersion].
-func MigrateInteractive(stdin io.Reader, stdout io.Writer) error {
+func schemaUpgradeAutoV3(*Cfg) error {
+	// xray-redirect state: legacy JSON under /etc/z-panel/state/ is merged in mergeLegacyStateFiles on read.
+	return nil
+}
+
+func schemaUpgradeAutoV4(*Cfg) error {
+	// no_banner, ssh_no_multiplex, ssh_no_tty — defaults applied in normalize; z-panel env vars removed.
+	return nil
+}
+
+func applySchemaUpgradesAuto(c *Cfg, storedEffective int) error {
+	for v := storedEffective + 1; v <= CurrentSchemaVersion; v++ {
+		fn, ok := schemaUpgradesAuto[v]
+		if !ok {
+			return fmt.Errorf("z-panel: missing schema upgrade step for version %d (program bug)", v)
+		}
+		if err := fn(c); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// MigrateInteractive ensures config.toml is loaded; schema upgrades are applied automatically in Load().
+func MigrateInteractive(_ io.Reader, stdout io.Writer) error {
 	if err := root.Require(); err != nil {
 		return err
 	}
@@ -74,11 +70,11 @@ func MigrateInteractive(stdin io.Reader, stdout io.Writer) error {
 	if err := Load(); err != nil {
 		return err
 	}
-	stored := EffectiveStoredSchema(C.SchemaVersion)
-	if stored >= CurrentSchemaVersion {
+	if SchemaJustAutoMigrated() {
+		fmt.Fprint(stdout, i18n.T("settings.migrate_completed", CurrentSchemaVersion))
+	} else {
 		fmt.Fprintln(stdout, i18n.T("settings.migrate_uptodate"))
-		i18n.ApplyFromConfig(C.Language)
-		return nil
 	}
-	return runSchemaMigration(stdin, stdout, path, true)
+	i18n.ApplyFromConfig(C.Language)
+	return nil
 }

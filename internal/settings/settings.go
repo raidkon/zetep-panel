@@ -12,6 +12,7 @@ import (
 	"github.com/pelletier/go-toml/v2"
 
 	"z-panel/internal/config"
+	"z-panel/internal/executil"
 	"z-panel/internal/i18n"
 	"z-panel/internal/root"
 	"z-panel/internal/state"
@@ -35,7 +36,13 @@ type Cfg struct {
 	XrayRedirect map[string]state.File `toml:"xray_redirect,omitempty"`
 	// Daemon: 1 = when the daemon is running, run subcommands via it; 0 = always run locally.
 	Daemon int `toml:"daemon"`
-	// Language: auto (use locale / Z_PANEL_LANG), en, or ru.
+	// NoBanner: omit the first stderr line (z-panel version) on each run.
+	NoBanner bool `toml:"no_banner"`
+	// SSHNoMultiplex: do not start SSH ControlMaster for z-panel --ssh=… (one TCP connection per ssh).
+	SSHNoMultiplex bool `toml:"ssh_no_multiplex"`
+	// SSHNoTTY: omit ssh -t for remote sudo (e.g. NOPASSWD).
+	SSHNoTTY bool `toml:"ssh_no_tty"`
+	// Language: auto (follow system LANG / LANGUAGE / LC_*), or fixed en, ru, zh, …
 	Language string `toml:"language"`
 	// SchemaVersion is written by the program; 0 in file means legacy (treated as 1).
 	SchemaVersion int `toml:"schema_version"`
@@ -43,6 +50,14 @@ type Cfg struct {
 
 // C is the loaded configuration; non-nil after Load().
 var C *Cfg
+
+// schemaJustAutoMigrated is set when Load() upgraded schema_version and saved config in this process.
+var schemaJustAutoMigrated bool
+
+// SchemaJustAutoMigrated reports whether the last Load() applied a schema upgrade and persisted it.
+func SchemaJustAutoMigrated() bool {
+	return schemaJustAutoMigrated
+}
 
 func defaults() Cfg {
 	return Cfg{
@@ -62,27 +77,108 @@ func defaults() Cfg {
 	}
 }
 
-// Load reads config.toml; if missing, only defaults apply.
-func Load() error {
+// readConfigFromDisk loads config.toml or defaults when the file is missing.
+func readConfigFromDisk() (c Cfg, fileExists bool, err error) {
 	path := config.ConfigFile
-	base := defaults()
-	b, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			c := base
+	c = defaults()
+	b, readErr := os.ReadFile(path)
+	if readErr != nil {
+		if os.IsNotExist(readErr) {
 			normalize(&c)
 			mergeLegacyStateFiles(&c)
+			return c, false, nil
+		}
+		return c, false, fmt.Errorf(i18n.T("settings.err.read"), path, readErr)
+	}
+	if err := toml.Unmarshal(b, &c); err != nil {
+		return c, true, fmt.Errorf(i18n.T("settings.err.parse"), path, err)
+	}
+	normalize(&c)
+	mergeLegacyStateFiles(&c)
+	return c, true, nil
+}
+
+// reloadFromDiskIntoC refreshes [C] from disk without running schema migration (used after Write).
+func reloadFromDiskIntoC() error {
+	c, _, err := readConfigFromDisk()
+	if err != nil {
+		return err
+	}
+	C = &c
+	return nil
+}
+
+// persistConfigToDisk writes canonical config.toml (requires root). Does not reload [C].
+func persistConfigToDisk(c Cfg) error {
+	if err := root.Require(); err != nil {
+		return err
+	}
+	normalize(&c)
+	if err := os.MkdirAll(config.ConfigDir, 0o755); err != nil {
+		return fmt.Errorf(i18n.T("settings.err.mkdir"), config.ConfigDir, err)
+	}
+	body, err := toml.Marshal(&c)
+	if err != nil {
+		return err
+	}
+	hdr := []byte(i18n.T("settings.config_hdr"))
+	path := config.ConfigFile
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, append(hdr, body...), 0o644); err != nil {
+		return err
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		_ = os.Remove(tmp)
+		return fmt.Errorf(i18n.T("settings.err.write"), path, err)
+	}
+	return nil
+}
+
+// Load reads config.toml; if missing, only defaults apply.
+// If the file exists and schema_version is older than [CurrentSchemaVersion], applies all registered
+// upgrade steps, persists immediately, and reloads from disk (requires root for the write).
+func Load() error {
+	schemaJustAutoMigrated = false
+	c, fileExists, err := readConfigFromDisk()
+	if err != nil {
+		return err
+	}
+	if !fileExists {
+		C = &c
+		return nil
+	}
+	stored := EffectiveStoredSchema(c.SchemaVersion)
+	if stored < CurrentSchemaVersion {
+		if err := applySchemaUpgradesAuto(&c, stored); err != nil {
+			return err
+		}
+		c.SchemaVersion = CurrentSchemaVersion
+		normalize(&c)
+		// Persist immediately when privileged; otherwise keep migrated view in memory (disk updated on next sudo/root run).
+		if err := root.Require(); err != nil {
 			C = &c
+			if !c.NoBanner {
+				fmt.Fprint(os.Stderr, i18n.T("settings.migrate_deferred", stored, CurrentSchemaVersion, config.ConfigFile))
+			}
 			return nil
 		}
-		return fmt.Errorf(i18n.T("settings.err.read"), path, err)
+		if executil.RemoteSSHHost() != "" && os.Geteuid() != 0 {
+			C = &c
+			if !c.NoBanner {
+				fmt.Fprint(os.Stderr, i18n.T("settings.migrate_deferred", stored, CurrentSchemaVersion, config.ConfigFile))
+			}
+			return nil
+		}
+		if err := persistConfigToDisk(c); err != nil {
+			return fmt.Errorf("%s: %w", i18n.T("settings.err.migrate_persist"), err)
+		}
+		schemaJustAutoMigrated = true
+		if !c.NoBanner {
+			fmt.Fprint(os.Stderr, i18n.T("settings.migrate_auto_stderr", stored, CurrentSchemaVersion, config.ConfigFile))
+		}
+		return reloadFromDiskIntoC()
 	}
-	if err := toml.Unmarshal(b, &base); err != nil {
-		return fmt.Errorf(i18n.T("settings.err.parse"), path, err)
-	}
-	normalize(&base)
-	mergeLegacyStateFiles(&base)
-	C = &base
+	C = &c
 	return nil
 }
 
@@ -150,32 +246,14 @@ func normalizeLanguage(c *Cfg) {
 
 // Write saves config to disk (requires root).
 func Write(c Cfg) error {
-	if err := root.Require(); err != nil {
+	if err := persistConfigToDisk(c); err != nil {
 		return err
 	}
-	normalize(&c)
-	if err := os.MkdirAll(config.ConfigDir, 0o755); err != nil {
-		return fmt.Errorf(i18n.T("settings.err.mkdir"), config.ConfigDir, err)
-	}
-	body, err := toml.Marshal(&c)
-	if err != nil {
-		return err
-	}
-	hdr := []byte(i18n.T("settings.config_hdr"))
-	path := config.ConfigFile
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, append(hdr, body...), 0o644); err != nil {
-		return err
-	}
-	if err := os.Rename(tmp, path); err != nil {
-		os.Remove(tmp)
-		return fmt.Errorf(i18n.T("settings.err.write"), path, err)
-	}
-	return Load()
+	return reloadFromDiskIntoC()
 }
 
 // InitInteractive prompts and writes config.toml.
-// If force=false and the file exists: runs schema migration when needed, otherwise prints init_exists.
+// If force=false and the file exists: Load() applies schema migration if needed, then prints init_exists.
 func InitInteractive(stdin io.Reader, stdout io.Writer, force bool) error {
 	if err := root.Require(); err != nil {
 		return err
@@ -185,10 +263,6 @@ func InitInteractive(stdin io.Reader, stdout io.Writer, force bool) error {
 		if _, err := os.Stat(path); err == nil {
 			if err := Load(); err != nil {
 				return err
-			}
-			stored := EffectiveStoredSchema(C.SchemaVersion)
-			if stored < CurrentSchemaVersion {
-				return runSchemaMigration(stdin, stdout, path, true)
 			}
 			fmt.Fprintf(stdout, i18n.T("settings.init_exists"), path)
 			i18n.ApplyFromConfig(C.Language)

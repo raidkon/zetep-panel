@@ -8,7 +8,7 @@ import (
 )
 
 func TestRequire_dependsOnUID(t *testing.T) {
-	t.Cleanup(func() { _ = os.Unsetenv(executil.EnvSSHHost) })
+	t.Cleanup(executil.ResetSSHForTests)
 	err := Require()
 	if os.Geteuid() == 0 {
 		if err != nil {
@@ -22,8 +22,8 @@ func TestRequire_dependsOnUID(t *testing.T) {
 }
 
 func TestRequire_skipsRootCheckUnderSSH(t *testing.T) {
-	t.Cleanup(func() { _ = os.Unsetenv(executil.EnvSSHHost) })
-	t.Setenv(executil.EnvSSHHost, "h")
+	t.Cleanup(executil.ResetSSHForTests)
+	executil.SetRemoteSSHHost("h")
 	if err := Require(); err != nil {
 		t.Fatal(err)
 	}

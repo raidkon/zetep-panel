@@ -1,7 +1,6 @@
 package i18n
 
 import (
-	"os"
 	"testing"
 )
 
@@ -52,10 +51,8 @@ func TestLangFromLocaleTag(t *testing.T) {
 
 func TestApplyFromConfig_and_T(t *testing.T) {
 	t.Cleanup(func() {
-		_ = os.Unsetenv("Z_PANEL_LANG")
 		Init()
 	})
-	_ = os.Unsetenv("Z_PANEL_LANG")
 	Init()
 	ApplyFromConfig("ru")
 	if Language() != RU {
