@@ -38,7 +38,7 @@ func hiStrings() map[string]string {
 		"confcmd.help": `config [help] init [--force|-f]
   %s इंटरैक्टिव बनाएँ/अधिलेखित (--force)।
 config [help] migrate
-  अपग्रेड के बाद नई कुंजियाँ।
+  कॉन्फ़िग लोड करें; स्कीमा माइग्रेशन ज़रूरत पर z-panel शुरू होने पर स्वतः।
 
 `,
 		"version.help": `version
@@ -47,7 +47,7 @@ config [help] migrate
 
 `,
 		"settings.err.read": "पढ़ना %s: %w", "settings.err.parse": "पार्स %s: %w", "settings.err.mkdir": "mkdir %s: %w",
-		"settings.err.write": "लेखन %s: %w", "settings.config_hdr": "# z-panel — कॉन्फ़िगरेशन\n\n",
+		"settings.err.write": "लेखन %s: %w", "settings.err.migrate_persist": "स्कीमा माइग्रेशन सहेज नहीं सका",
 		"settings.init_exists": "कॉन्फ़िग पहले से: %s (z-panel config init --force)\n",
 		"settings.init_intro": "z-panel सेटअप — मान दर्ज करें या डिफ़ॉल्ट हेतु Enter।",
 		"settings.saved": "\nसहेजा: %s\n",
@@ -60,6 +60,9 @@ config [help] migrate
 		"settings.migrate_intro": "पुरानी z-panel कॉन्फ़िग। नए विकल्प सेट करें।",
 		"settings.migrate_uptodate": "कॉन्फ़िग स्कीमा अप टू डेट।",
 		"settings.migrate_no_file": "%s: कॉन्फ़िग फ़ाइल नहीं (z-panel config init)",
+		"settings.migrate_auto_stderr": "z-panel: कॉन्फ़िग स्कीमा %d → %d (%s)\n",
+		"settings.migrate_completed": "स्कीमा माइग्रेशन लागू (संस्करण %d)।\n",
+		"settings.migrate_deferred": "z-panel: डिस्क पर स्कीमा %d (आवश्यक %d)। root से सहेजें, उदा. sudo z-panel version — %s\n",
 		"xrayredirect.want_up_down": "अपेक्षित: z-panel xray-redirect up|down …",
 		"xrayredirect.want_down_iface": "अपेक्षित: z-panel xray-redirect down <interface>",
 		"xrayredirect.bad_action": "xray-redirect: अज्ञात क्रिया %q",
@@ -164,7 +167,7 @@ func bnStrings() map[string]string {
 		"confcmd.help": `config [help] init [--force|-f]
   %s ইন্টারঅ্যাক্টিভ তৈরি (--force)।
 config [help] migrate
-  আপগ্রেডের পর নতুন কী।
+  কনফিগ লোড; প্রয়োজনে স্কিমা মাইগ্রেশন z-panel শুরুতে স্বয়ংক্রিয়।
 
 `,
 		"version.help": `version
@@ -173,7 +176,7 @@ config [help] migrate
 
 `,
 		"settings.err.read": "পড়া %s: %w", "settings.err.parse": "পার্স %s: %w", "settings.err.mkdir": "mkdir %s: %w",
-		"settings.err.write": "লেখা %s: %w", "settings.config_hdr": "# z-panel — কনফিগারেশন\n\n",
+		"settings.err.write": "লেখা %s: %w", "settings.err.migrate_persist": "স্কিমা মাইগ্রেশন সংরক্ষণ করা যায়নি",
 		"settings.init_exists": "কনফিগ আগে থেকে: %s\n",
 		"settings.init_intro": "z-panel সেটআপ — মান বা Enter।",
 		"settings.saved": "\nসংরক্ষিত: %s\n",
@@ -186,6 +189,9 @@ config [help] migrate
 		"settings.migrate_intro": "পুরনো z-panel কনফিগ। নতুন বিকল্প সেট করুন।",
 		"settings.migrate_uptodate": "কনফিগ স্কিমা আপ টু ডেট।",
 		"settings.migrate_no_file": "%s: কনফিগ ফাইল নেই",
+		"settings.migrate_auto_stderr": "z-panel: কনফিগ স্কিমা %d → %d (%s)\n",
+		"settings.migrate_completed": "স্কিমা মাইগ্রেশন প্রয়োগ (সংস্করণ %d)।\n",
+		"settings.migrate_deferred": "z-panel: ডিস্কে স্কিমা %d (প্রয়োজন %d)। root দিয়ে সংরক্ষণ, যেমন sudo z-panel version — %s\n",
 		"xrayredirect.want_up_down": "প্রত্যাশিত: xray-redirect up|down …",
 		"xrayredirect.want_down_iface": "প্রত্যাশিত: xray-redirect down <interface>",
 		"xrayredirect.bad_action": "xray-redirect: অজানা অ্যাকশন %q",
@@ -290,7 +296,7 @@ func urStrings() map[string]string {
 		"confcmd.help": `config [help] init [--force|-f]
   %s انٹرایکٹو (--force)۔
 config [help] migrate
-  اپ گریڈ کے بعد نئی کلیدیں۔
+  کنفیگ لوڈ؛ ضرورت پر سکیما مائگریشن z-panel شروع پر خودکار۔
 
 `,
 		"version.help": `version
@@ -299,7 +305,7 @@ config [help] migrate
 
 `,
 		"settings.err.read": "پڑھنا %s: %w", "settings.err.parse": "پارس %s: %w", "settings.err.mkdir": "mkdir %s: %w",
-		"settings.err.write": "لکھنا %s: %w", "settings.config_hdr": "# z-panel — ترتیب\n\n",
+		"settings.err.write": "لکھنا %s: %w", "settings.err.migrate_persist": "سکیما مائگریشن محفوظ نہیں ہو سکی",
 		"settings.init_exists": "کنفیگ پہلے سے: %s\n",
 		"settings.init_intro": "z-panel سیٹ اپ — قدر یا Enter۔",
 		"settings.saved": "\nمحفوظ: %s\n",
@@ -312,6 +318,9 @@ config [help] migrate
 		"settings.migrate_intro": "پرانی z-panel کنفیگ۔ نئے اختیارات۔",
 		"settings.migrate_uptodate": "سکیم تازہ۔",
 		"settings.migrate_no_file": "%s: کنفیگ فائل نہیں",
+		"settings.migrate_auto_stderr": "z-panel: کنفیگ سکیما %d → %d (%s)\n",
+		"settings.migrate_completed": "سکیما مائگریشن لاگو (ورژن %d)۔\n",
+		"settings.migrate_deferred": "z-panel: ڈسک پر سکیما %d (ضروری %d)۔ root سے محفوظ کریں، مثلاً sudo z-panel version — %s\n",
 		"xrayredirect.want_up_down": "متوقع: xray-redirect up|down …",
 		"xrayredirect.want_down_iface": "متوقع: xray-redirect down <interface>",
 		"xrayredirect.bad_action": "xray-redirect: نامعلوم %q",
@@ -416,7 +425,7 @@ func arStrings() map[string]string {
 		"confcmd.help": `config [help] init [--force|-f]
   إنشاء %s تفاعلياً (--force)۔
 config [help] migrate
-  مفاتيح جديدة بعد الترقية۔
+  تحميل الإعداد؛ ترحيل المخطط تلقائياً عند بدء z-panel عند الحاجة.
 
 `,
 		"version.help": `version
@@ -425,7 +434,7 @@ config [help] migrate
 
 `,
 		"settings.err.read": "قراءة %s: %w", "settings.err.parse": "تحليل %s: %w", "settings.err.mkdir": "mkdir %s: %w",
-		"settings.err.write": "كتابة %s: %w", "settings.config_hdr": "# z-panel — إعداد\n\n",
+		"settings.err.write": "كتابة %s: %w", "settings.err.migrate_persist": "تعذّر حفظ ترحيل المخطط",
 		"settings.init_exists": "الإعداد موجود: %s\n",
 		"settings.init_intro": "إعداد z-panel — أدخل قيمة أو Enter للافتراضي.",
 		"settings.saved": "\nحُفظ: %s\n",
@@ -438,6 +447,9 @@ config [help] migrate
 		"settings.migrate_intro": "إعداد من إصدار قديم. عيّن الخيارات الجديدة.",
 		"settings.migrate_uptodate": "المخطط محدّث.",
 		"settings.migrate_no_file": "%s: لا ملف إعداد",
+		"settings.migrate_auto_stderr": "z-panel: مخطط الإعداد %d → %d (%s)\n",
+		"settings.migrate_completed": "تم تطبيق ترحيل المخطط (الإصدار %d).\n",
+		"settings.migrate_deferred": "z-panel: المخطط على القرص %d (المطلوب %d). احفظ كجذر، مثلاً sudo z-panel version — %s\n",
 		"xrayredirect.want_up_down": "متوقع: xray-redirect up|down …",
 		"xrayredirect.want_down_iface": "متوقع: xray-redirect down <interface>",
 		"xrayredirect.bad_action": "xray-redirect: إجراء غير معروف %q",

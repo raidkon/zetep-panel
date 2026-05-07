@@ -40,7 +40,7 @@ Comandos:
 		"confcmd.help": `config [help] init [--force|-f]
   Crear o sobrescribir %s de forma interactiva (--force).
 config [help] migrate
-  Aplicar claves nuevas tras actualizar z-panel (solo versiones de esquema nuevas).
+  Carga la config; si hace falta, la migración del esquema ocurre al iniciar z-panel.
 
 `,
 		"version.help": `version
@@ -49,7 +49,7 @@ config [help] migrate
 
 `,
 		"settings.err.read": "leer %s: %w", "settings.err.parse": "analizar %s: %w", "settings.err.mkdir": "mkdir %s: %w",
-		"settings.err.write": "escribir %s: %w", "settings.config_hdr": "# z-panel — configuración\n\n",
+		"settings.err.write": "escribir %s: %w", "settings.err.migrate_persist": "no se pudo guardar la migración del esquema",
 		"settings.init_exists": "la config ya existe: %s (sobrescribir: z-panel config init --force)\n",
 		"settings.init_intro": "Configuración z-panel — escriba un valor o Enter para el predeterminado.",
 		"settings.saved": "\nguardado: %s\n",
@@ -62,6 +62,9 @@ config [help] migrate
 		"settings.migrate_intro": "Esta config es de una versión antigua. Establezca los valores nuevos.",
 		"settings.migrate_uptodate": "el esquema de config ya está actualizado.",
 		"settings.migrate_no_file": "%s: no hay archivo de config (ejecute z-panel config init)",
+		"settings.migrate_auto_stderr": "z-panel: esquema de config %d → %d (%s)\n",
+		"settings.migrate_completed": "migración de esquema aplicada (versión %d).\n",
+		"settings.migrate_deferred": "z-panel: esquema en disco %d (se necesita %d). Guarde como root, p. ej. sudo z-panel version — %s\n",
 		"xrayredirect.want_up_down": "se esperaba: z-panel xray-redirect up|down …",
 		"xrayredirect.want_down_iface": "se esperaba: z-panel xray-redirect down <interfaz>",
 		"xrayredirect.bad_action": "xray-redirect: acción desconocida %q",
@@ -177,7 +180,7 @@ Commandes :
 		"confcmd.help": `config [help] init [--force|-f]
   Création interactive ou écrasement de %s (--force).
 config [help] migrate
-  Nouvelles clés après mise à jour de z-panel.
+  Charge la config ; la migration du schéma se fait au démarrage de z-panel si nécessaire.
 
 `,
 		"version.help": `version
@@ -186,7 +189,7 @@ config [help] migrate
 
 `,
 		"settings.err.read": "lecture %s : %w", "settings.err.parse": "analyse %s : %w", "settings.err.mkdir": "mkdir %s : %w",
-		"settings.err.write": "écriture %s : %w", "settings.config_hdr": "# z-panel — configuration\n\n",
+		"settings.err.write": "écriture %s : %w", "settings.err.migrate_persist": "impossible d'enregistrer la migration du schéma",
 		"settings.init_exists": "config existe : %s (écraser : z-panel config init --force)\n",
 		"settings.init_intro": "Configuration z-panel — valeur ou Entrée pour défaut.",
 		"settings.saved": "\nenregistré : %s\n",
@@ -199,6 +202,9 @@ config [help] migrate
 		"settings.migrate_intro": "Config d'une ancienne version. Renseignez les nouvelles options.",
 		"settings.migrate_uptodate": "schéma config à jour.",
 		"settings.migrate_no_file": "%s : fichier config absent (z-panel config init)",
+		"settings.migrate_auto_stderr": "z-panel : schéma config %d → %d (%s)\n",
+		"settings.migrate_completed": "migration du schéma appliquée (version %d).\n",
+		"settings.migrate_deferred": "z-panel : schéma sur disque %d (attendu %d). Enregistrer en root, ex. sudo z-panel version — %s\n",
 		"xrayredirect.want_up_down": "attendu : z-panel xray-redirect up|down …",
 		"xrayredirect.want_down_iface": "attendu : z-panel xray-redirect down <interface>",
 		"xrayredirect.bad_action": "xray-redirect : action inconnue %q",
@@ -307,7 +313,7 @@ Comandos:
 		"confcmd.help": `config [help] init [--force|-f]
   Criar ou sobrescrever %s (--force).
 config [help] migrate
-  Novas chaves após atualizar z-panel.
+  Carrega a config; a migração do esquema ocorre ao iniciar o z-panel se necessário.
 
 `,
 		"version.help": `version
@@ -316,7 +322,7 @@ config [help] migrate
 
 `,
 		"settings.err.read": "ler %s: %w", "settings.err.parse": "analisar %s: %w", "settings.err.mkdir": "mkdir %s: %w",
-		"settings.err.write": "escrever %s: %w", "settings.config_hdr": "# z-panel — configuração\n\n",
+		"settings.err.write": "escrever %s: %w", "settings.err.migrate_persist": "não foi possível salvar a migração do esquema",
 		"settings.init_exists": "config já existe: %s (z-panel config init --force)\n",
 		"settings.init_intro": "Configuração z-panel — valor ou Enter para padrão.",
 		"settings.saved": "\nsalvo: %s\n",
@@ -329,6 +335,9 @@ config [help] migrate
 		"settings.migrate_intro": "Config de versão antiga. Defina novas opções.",
 		"settings.migrate_uptodate": "esquema de config atualizado.",
 		"settings.migrate_no_file": "%s: arquivo de config ausente (z-panel config init)",
+		"settings.migrate_auto_stderr": "z-panel: esquema de config %d → %d (%s)\n",
+		"settings.migrate_completed": "migração do esquema aplicada (versão %d).\n",
+		"settings.migrate_deferred": "z-panel: esquema no disco %d (necessário %d). Salve como root, ex. sudo z-panel version — %s\n",
 		"xrayredirect.want_up_down": "esperado: z-panel xray-redirect up|down …",
 		"xrayredirect.want_down_iface": "esperado: z-panel xray-redirect down <interface>",
 		"xrayredirect.bad_action": "xray-redirect: ação desconhecida %q",
