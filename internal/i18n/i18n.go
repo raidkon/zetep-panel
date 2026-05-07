@@ -1,13 +1,14 @@
 // Package i18n provides localized user-visible strings.
 //
-// Language selection for Init() (environment only, call before settings.Load):
-//   - Z_PANEL_LANG — e.g. en, en_US, ru, ru_RU (overrides locale)
-//   - LANGUAGE — colon-separated list (common on glibc), first token used
-//   - LC_ALL, LC_MESSAGES, LANG
+// Language selection for Init() (call once from main before settings.Load):
+//   - Standard locale: LANGUAGE (colon-separated), LC_ALL, LC_MESSAGES, LANG
 //
 // After loading config.toml, call ApplyFromConfig(settings.C.Language):
-//   - auto — same rules as above
-//   - en | zh | hi | es | fr | ar | bn | pt | ru | ur — fixed UI language
+//   - auto — same rules as Init() (system locale only)
+//   - en | zh | hi | es | fr | ar | bn | pt | ru | ur — fixed UI language from the config file
+//
+// z-panel does not read Z_PANEL_* environment variables for UI or routing; use config.toml
+// (see settings.config_hdr and keys no_banner, ssh_no_tty, ssh_no_multiplex, language, daemon).
 //
 // Default is English (en). Unknown locales fall back to English.
 // C/POSIX is treated as English.
@@ -39,7 +40,7 @@ func init() {
 	}
 }
 
-// Init selects the active language from the environment only (call once from main before Load).
+// Init selects the active language from the system locale only (call once from main before Load).
 func Init() {
 	current = detect()
 }
@@ -64,11 +65,6 @@ func Language() Lang {
 }
 
 func detect() Lang {
-	if v := strings.TrimSpace(os.Getenv("Z_PANEL_LANG")); v != "" {
-		if l := normLang(v); l != "" {
-			return l
-		}
-	}
 	if v := strings.TrimSpace(os.Getenv("LANGUAGE")); v != "" {
 		for _, p := range strings.Split(v, ":") {
 			p = strings.TrimSpace(p)

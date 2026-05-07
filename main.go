@@ -36,7 +36,7 @@ func init() {
 
 func main() {
 	i18n.Init()
-	os.Exit(runMain(os.Args))
+	os.Exit(runMain(settings.StripInternalRunFlags(os.Args)))
 }
 
 // runMain implements the root command flow; returns an exit code (process should not call os.Exit).
@@ -48,10 +48,13 @@ func runMain(args []string) int {
 	}
 	switch remoteMode {
 	case transport.RemoteZPanelBinary:
-		if os.Getenv("Z_PANEL_NO_BANNER") == "" {
+		if err := settings.Load(); err != nil {
+			settings.ApplyDefaults()
+		}
+		executil.SetSSHNoTTY(settings.C.SSHNoTTY)
+		if !settings.C.NoBanner {
 			fmt.Fprintf(os.Stderr, "z-panel %s\n", config.Version)
 		}
-		settings.ApplyDefaults()
 		i18n.ApplyFromConfig(settings.C.Language)
 		if len(rest) < 2 {
 			app.PrintRootHelp(os.Stdout)
@@ -71,16 +74,19 @@ func runMain(args []string) int {
 		}
 		return 0
 	case transport.RemoteLocalTools:
-		if os.Getenv("Z_PANEL_NO_BANNER") == "" {
+		if err := settings.Load(); err != nil {
+			settings.ApplyDefaults()
+		}
+		executil.SetSSHNoTTY(settings.C.SSHNoTTY)
+		if !settings.C.NoBanner {
 			fmt.Fprintf(os.Stderr, "z-panel %s\n", config.Version)
 		}
-		_ = os.Setenv(executil.EnvSSHHost, sshHost)
-		defer func() { _ = os.Unsetenv(executil.EnvSSHHost) }()
-		if muxStop, _ := executil.TryStartSSHMultiplex(sshHost); muxStop != nil {
+		i18n.ApplyFromConfig(settings.C.Language)
+		executil.SetRemoteSSHHost(sshHost)
+		defer executil.SetRemoteSSHHost("")
+		if muxStop, _ := executil.TryStartSSHMultiplex(sshHost, settings.C.SSHNoMultiplex); muxStop != nil {
 			defer muxStop()
 		}
-		settings.ApplyDefaults()
-		i18n.ApplyFromConfig(settings.C.Language)
 		if len(rest) < 2 {
 			app.PrintRootHelp(os.Stdout)
 			return 0
@@ -114,16 +120,17 @@ func runMain(args []string) int {
 		return 0
 	}
 
-	if os.Getenv("Z_PANEL_NO_BANNER") == "" {
-		fmt.Fprintf(os.Stderr, "z-panel %s\n", config.Version)
-	}
 	if err := settings.Load(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
+	executil.SetSSHNoTTY(settings.C.SSHNoTTY)
 	i18n.ApplyFromConfig(settings.C.Language)
+	if !settings.C.NoBanner {
+		fmt.Fprintf(os.Stderr, "z-panel %s\n", config.Version)
+	}
 
-	skipDaemon := os.Getenv("Z_PANEL_SKIP_DAEMON") != ""
+	skipDaemon := settings.SkipDaemonForward()
 	if !skipDaemon && len(args) >= 2 && settings.C.DaemonEnabled() && !daemon.ForbiddenRemote(args[1]) {
 		err := client.Forward(args[1:])
 		if err == nil {
@@ -131,7 +138,7 @@ func runMain(args []string) int {
 		}
 		if client.IsUnavailable(err) {
 			fmt.Fprintf(os.Stderr, "%s", i18n.T("daemon.fallback_warning"))
-			_ = os.Setenv("Z_PANEL_SKIP_DAEMON", "1")
+			settings.SetSkipDaemonForward(true)
 		} else {
 			fmt.Fprintln(os.Stderr, err)
 			if code, ok := client.ExitStatus(err); ok {

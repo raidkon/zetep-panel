@@ -76,11 +76,8 @@ func Serve(ctx context.Context, socketPath string) error {
 			http.Error(w, fmt.Sprintf(`{"error":%q}`, err.Error()), http.StatusInternalServerError)
 			return
 		}
-		cmd := exec.Command(exe, req.Args...)
-		cmd.Env = append(os.Environ(),
-			"Z_PANEL_SKIP_DAEMON=1",
-			"Z_PANEL_NO_BANNER=1",
-		)
+		cmd := exec.Command(exe, append([]string{settings.ArgSkipDaemonForward}, req.Args...)...)
+		cmd.Env = os.Environ()
 		var stdout, stderr bytes.Buffer
 		cmd.Stdout = &stdout
 		cmd.Stderr = &stderr

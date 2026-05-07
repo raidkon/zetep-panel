@@ -10,8 +10,8 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	_ = os.Setenv("Z_PANEL_LANG", "en")
 	i18n.Init()
+	i18n.ApplyFromConfig("en")
 	settings.C = &settings.Cfg{
 		DefaultLANCIDR: "192.168.0.0/16",
 		DefaultLANDev:  "lan0",

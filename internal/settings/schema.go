@@ -12,7 +12,7 @@ import (
 
 // CurrentSchemaVersion must be incremented whenever new user-facing keys are added
 // to [Cfg] that should be prompted on upgrade. Register the matching step in schemaUpgradesAuto.
-const CurrentSchemaVersion = 3
+const CurrentSchemaVersion = 4
 
 // EffectiveStoredSchema maps on-disk schema_version: 0 / missing → 1 (legacy configs).
 func EffectiveStoredSchema(v int) int {
@@ -27,6 +27,7 @@ func EffectiveStoredSchema(v int) int {
 var schemaUpgradesAuto = map[int]func(*Cfg) error{
 	2: schemaUpgradeAutoV2,
 	3: schemaUpgradeAutoV3,
+	4: schemaUpgradeAutoV4,
 }
 
 func schemaUpgradeAutoV2(*Cfg) error {
@@ -36,6 +37,11 @@ func schemaUpgradeAutoV2(*Cfg) error {
 
 func schemaUpgradeAutoV3(*Cfg) error {
 	// xray-redirect state: legacy JSON under /etc/z-panel/state/ is merged in mergeLegacyStateFiles on read.
+	return nil
+}
+
+func schemaUpgradeAutoV4(*Cfg) error {
+	// no_banner, ssh_no_multiplex, ssh_no_tty — defaults applied in normalize; z-panel env vars removed.
 	return nil
 }
 

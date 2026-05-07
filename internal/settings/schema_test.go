@@ -16,7 +16,7 @@ func TestEffectiveStoredSchema(t *testing.T) {
 	if EffectiveStoredSchema(2) != 2 {
 		t.Fatal()
 	}
-	if EffectiveStoredSchema(3) != 3 {
+	if EffectiveStoredSchema(4) != 4 {
 		t.Fatal()
 	}
 }
@@ -36,7 +36,7 @@ func TestApplySchemaUpgradesAuto(t *testing.T) {
 		t.Fatal(err)
 	}
 	c.SchemaVersion = CurrentSchemaVersion
-	if c.SchemaVersion != 3 {
-		t.Fatalf("expected CurrentSchemaVersion 3, got %d", c.SchemaVersion)
+	if c.SchemaVersion != CurrentSchemaVersion {
+		t.Fatalf("expected CurrentSchemaVersion %d, got %d", CurrentSchemaVersion, c.SchemaVersion)
 	}
 }

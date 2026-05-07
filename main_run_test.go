@@ -9,8 +9,8 @@ import (
 )
 
 func TestRunMain_version(t *testing.T) {
-	t.Setenv("Z_PANEL_SKIP_DAEMON", "1")
-	t.Setenv("Z_PANEL_NO_BANNER", "1")
+	t.Cleanup(settings.ResetInternalRunFlagsForTest)
+	settings.SetSkipDaemonForward(true)
 	settings.C = nil
 	code := runMain([]string{"z-panel", "version"})
 	if code != 0 {
@@ -19,8 +19,8 @@ func TestRunMain_version(t *testing.T) {
 }
 
 func TestRunMain_help(t *testing.T) {
-	t.Setenv("Z_PANEL_SKIP_DAEMON", "1")
-	t.Setenv("Z_PANEL_NO_BANNER", "1")
+	t.Cleanup(settings.ResetInternalRunFlagsForTest)
+	settings.SetSkipDaemonForward(true)
 	settings.C = nil
 	code := runMain([]string{"z-panel", "help"})
 	if code != 0 {
@@ -29,8 +29,8 @@ func TestRunMain_help(t *testing.T) {
 }
 
 func TestRunMain_badArg(t *testing.T) {
-	t.Setenv("Z_PANEL_SKIP_DAEMON", "1")
-	t.Setenv("Z_PANEL_NO_BANNER", "1")
+	t.Cleanup(settings.ResetInternalRunFlagsForTest)
+	settings.SetSkipDaemonForward(true)
 	settings.C = nil
 	code := runMain([]string{"z-panel", "not-a-command-xyz"})
 	if code != 1 {
@@ -45,8 +45,8 @@ func TestRunMain_sshConnect_version(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("PATH", dir)
-	t.Setenv("Z_PANEL_SKIP_DAEMON", "1")
-	t.Setenv("Z_PANEL_NO_BANNER", "1")
+	t.Cleanup(settings.ResetInternalRunFlagsForTest)
+	settings.SetSkipDaemonForward(true)
 	settings.C = nil
 	code := runMain([]string{"z-panel", "--ssh-connect=u@h", "version"})
 	if code != 0 {
@@ -55,8 +55,8 @@ func TestRunMain_sshConnect_version(t *testing.T) {
 }
 
 func TestRunMain_parseError(t *testing.T) {
-	t.Setenv("Z_PANEL_SKIP_DAEMON", "1")
-	t.Setenv("Z_PANEL_NO_BANNER", "1")
+	t.Cleanup(settings.ResetInternalRunFlagsForTest)
+	settings.SetSkipDaemonForward(true)
 	settings.C = nil
 	code := runMain([]string{"z-panel", "--ssh=h1", "--ssh=h2", "x"})
 	if code != 2 {
@@ -65,8 +65,8 @@ func TestRunMain_parseError(t *testing.T) {
 }
 
 func TestRunMain_onlyProg(t *testing.T) {
-	t.Setenv("Z_PANEL_SKIP_DAEMON", "1")
-	t.Setenv("Z_PANEL_NO_BANNER", "1")
+	t.Cleanup(settings.ResetInternalRunFlagsForTest)
+	settings.SetSkipDaemonForward(true)
 	settings.C = nil
 	code := runMain([]string{"z-panel"})
 	if code != 0 {
@@ -75,8 +75,8 @@ func TestRunMain_onlyProg(t *testing.T) {
 }
 
 func TestRunMain_sshConnect_helpOnly(t *testing.T) {
-	t.Setenv("Z_PANEL_SKIP_DAEMON", "1")
-	t.Setenv("Z_PANEL_NO_BANNER", "1")
+	t.Cleanup(settings.ResetInternalRunFlagsForTest)
+	settings.SetSkipDaemonForward(true)
 	settings.C = nil
 	code := runMain([]string{"z-panel", "--ssh-connect=user@host"})
 	if code != 0 {
@@ -95,8 +95,8 @@ func TestRunMain_sshLocal_install_usesScpSsh(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
-	t.Setenv("Z_PANEL_SKIP_DAEMON", "1")
-	t.Setenv("Z_PANEL_NO_BANNER", "1")
+	t.Cleanup(settings.ResetInternalRunFlagsForTest)
+	settings.SetSkipDaemonForward(true)
 	settings.C = nil
 	code := runMain([]string{"z-panel", "--ssh", "h1", "install"})
 	if code != 0 {
@@ -105,8 +105,8 @@ func TestRunMain_sshLocal_install_usesScpSsh(t *testing.T) {
 }
 
 func TestRunMain_sshLocal_config_forbidden(t *testing.T) {
-	t.Setenv("Z_PANEL_SKIP_DAEMON", "1")
-	t.Setenv("Z_PANEL_NO_BANNER", "1")
+	t.Cleanup(settings.ResetInternalRunFlagsForTest)
+	settings.SetSkipDaemonForward(true)
 	settings.C = nil
 	code := runMain([]string{"z-panel", "--ssh", "h1", "config"})
 	if code != 1 {

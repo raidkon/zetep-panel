@@ -36,7 +36,13 @@ type Cfg struct {
 	XrayRedirect map[string]state.File `toml:"xray_redirect,omitempty"`
 	// Daemon: 1 = when the daemon is running, run subcommands via it; 0 = always run locally.
 	Daemon int `toml:"daemon"`
-	// Language: auto (use locale / Z_PANEL_LANG), en, or ru.
+	// NoBanner: omit the first stderr line (z-panel version) on each run.
+	NoBanner bool `toml:"no_banner"`
+	// SSHNoMultiplex: do not start SSH ControlMaster for z-panel --ssh=… (one TCP connection per ssh).
+	SSHNoMultiplex bool `toml:"ssh_no_multiplex"`
+	// SSHNoTTY: omit ssh -t for remote sudo (e.g. NOPASSWD).
+	SSHNoTTY bool `toml:"ssh_no_tty"`
+	// Language: auto (follow system LANG / LANGUAGE / LC_*), or fixed en, ru, zh, …
 	Language string `toml:"language"`
 	// SchemaVersion is written by the program; 0 in file means legacy (treated as 1).
 	SchemaVersion int `toml:"schema_version"`
@@ -151,14 +157,14 @@ func Load() error {
 		// Persist immediately when privileged; otherwise keep migrated view in memory (disk updated on next sudo/root run).
 		if err := root.Require(); err != nil {
 			C = &c
-			if os.Getenv("Z_PANEL_NO_BANNER") == "" {
+			if !c.NoBanner {
 				fmt.Fprint(os.Stderr, i18n.T("settings.migrate_deferred", stored, CurrentSchemaVersion, config.ConfigFile))
 			}
 			return nil
 		}
 		if executil.RemoteSSHHost() != "" && os.Geteuid() != 0 {
 			C = &c
-			if os.Getenv("Z_PANEL_NO_BANNER") == "" {
+			if !c.NoBanner {
 				fmt.Fprint(os.Stderr, i18n.T("settings.migrate_deferred", stored, CurrentSchemaVersion, config.ConfigFile))
 			}
 			return nil
@@ -167,7 +173,7 @@ func Load() error {
 			return fmt.Errorf("%s: %w", i18n.T("settings.err.migrate_persist"), err)
 		}
 		schemaJustAutoMigrated = true
-		if os.Getenv("Z_PANEL_NO_BANNER") == "" {
+		if !c.NoBanner {
 			fmt.Fprint(os.Stderr, i18n.T("settings.migrate_auto_stderr", stored, CurrentSchemaVersion, config.ConfigFile))
 		}
 		return reloadFromDiskIntoC()

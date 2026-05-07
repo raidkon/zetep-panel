@@ -70,7 +70,7 @@ config [help] migrate
 		"settings.err.mkdir":              "mkdir %s：%w",
 		"settings.err.write":              "写入 %s：%w",
 		"settings.err.migrate_persist":    "无法保存配置 schema 迁移",
-		"settings.config_hdr":             "# z-panel — 配置\n\n",
+		"settings.config_hdr":             "# z-panel — 配置\n# 所有 z-panel 设置仅来自本文件（不使用 Z_PANEL_* 环境变量）。\n# language=auto 时遵循系统 LANGUAGE / LC_* / LANG。\n\n",
 		"settings.init_exists":            "配置已存在：%s（覆盖请用：z-panel config init --force）\n",
 		"settings.init_intro":             "z-panel 设置 — 输入值或按 Enter 使用默认值。",
 		"settings.saved":                  "\n已保存：%s\n",

@@ -15,7 +15,7 @@
 **Требование:** все функции продукта (конфигурация, **модуль z-xray** / **Xray-core**, хостовая **Сеть** и др.) должны в конечном виде иметь **согласованное поведение** в двух базовых режимах:
 
 - **Локальный режим** — выполнение на том хосте, где установлен бинарник/агент и действует канонический **`/etc/z-panel/config.toml`** (или согласованный эквивалент для платформы).
-- **Удалённый режим по SSH** — те же операции адресуются выбранному серверу через транспорт SSH (существующий или целевой: `internal/transport`, переменные `Z_PANEL_SSH_*` и т.п.) так, чтобы пользователь не оперировал «двумя разными продуктами», а выбирал **контекст исполнения** (**этот хост** / **хост X по SSH**).
+- **Удалённый режим по SSH** — те же операции адресуются выбранному серверу через транспорт SSH (`internal/transport`, флаги `--ssh=` / `--ssh-connect=`) так, чтобы пользователь не оперировал «двумя разными продуктами», а выбирал **контекст исполнения** (**этот хост** / **хост X по SSH**).
 
 Ограничения текущей кодовой базы (часть команд в удалённом режиме запрещена, см. §2) следует трактовать как **зазор относительно этой цели**: дорожная карта должна его сужать, а не закреплять как постоянную модель.
 
@@ -136,7 +136,7 @@
 
 **Канонический источник настроек z-panel** — **один файл** **`/etc/z-panel/config.toml`** (`internal/config/config.go`). Все сохраняемые параметры продукта и **снимок состояния `xray-redirect`** (для `down`) хранятся **в этом файле** (секция **`[xray_redirect.<iface>]`** / карта `xray_redirect` в TOML). **Отдельно от канона** допускаются только **временные файлы среды выполнения**: Unix-сокет **daemon** (`socket_path`, по умолчанию под `/run/z-panel/`) и **PID-файл** процесса daemon (`pid_path`, по умолчанию `/run/z-panel/z-panel.pid`) — они **не** дублируют настройки, а отражают запущенный процесс.
 
-**Переменные окружения не заменяют этот файл:** они относятся к режиму запуска, локали и транспорту (например `Z_PANEL_LANG`, `Z_PANEL_SKIP_DAEMON`, `Z_PANEL_NO_BANNER`, параметры удалённого SSH вида `Z_PANEL_SSH_HOST` / `Z_PANEL_SSH_MUX` и т.п. — см. код и пользовательские документы по флагам SSH). Структурные поля (маршрутизация, `xray_redirect`, daemon, язык и т.д.) — часть **`config.toml`**.
+**Настройки z-panel задаются только `config.toml`:** переменных вида `Z_PANEL_*` нет. Язык при `language = auto` берётся из обычных системных переменных локали (**`LANGUAGE`**, **`LC_ALL`**, **`LC_MESSAGES`**, **`LANG`**), без отдельного префикса z-panel. Режим **`z-panel --ssh=…`** читает локальный **`config.toml`** для `ssh_no_tty`, `ssh_no_multiplex`, `no_banner` и т.д.; целевой хост задаётся только аргументами CLI.
 
 **Секреты** (пароли, долгоживущие токены и аналоги, если они появятся в конфигурации продукта): **требование** — в файле хранить только **хэши** с современными схемами вроде **bcrypt** или **Argon2** (выбор параметров и точный формат полей — задача реализации; открытый текст в конфиге не допускать).
 
@@ -179,7 +179,7 @@
 
 | Ключ TOML | Тип | Значение по умолчанию | Где используется / смысл |
 | --------- | --- | --------------------- | ------------------------ |
-| `schema_version` | целое | `0` в файле → при чтении legacy трактуется как **1**; актуальная версия в коде — **`CurrentSchemaVersion` = 3** (`internal/settings/schema.go`) | Миграции при обновлении (в т.ч. перенос снимков из старого каталога `state/` при первом `Load`, см. `mergeLegacyStateFiles`). |
+| `schema_version` | целое | `0` в файле → при чтении legacy трактуется как **1**; актуальная версия в коде — **`CurrentSchemaVersion` = 4** (`internal/settings/schema.go`) | Миграции при обновлении (в т.ч. перенос снимков из старого каталога `state/` при первом `Load`, см. `mergeLegacyStateFiles`). |
 | `table` | строка | `51843` | Таблица маршрутизации / fwmark для **xray-redirect**. |
 | `systemd_network_dir` | путь | `/etc/systemd/network` | Drop-in **systemd-networkd** для **xray-tun**. |
 | `ufw_marker` | строка | `z-panel` | Маркер **UFW**. |
@@ -192,23 +192,18 @@
 | `pid_path` | путь | `DefaultPidPath` | PID-файл **daemon** (отдельно от `config.toml`). |
 | `xray_redirect` | таблицы | — | Снимки **`xray-redirect up`** по ключу интерфейса (§2.3.4). |
 | `daemon` | `0` или `1` | `0` | Пересылка подкоманд на сокет (`internal/client`). |
-| `language` | строка | `auto` | Локаль / `Z_PANEL_LANG`; иначе `en`, `ru` и т.д. |
+| `no_banner` | bool | `false` | Не печатать первую строку stderr с версией при каждом запуске. |
+| `ssh_no_multiplex` | bool | `false` | Для `z-panel --ssh=…`: не поднимать SSH ControlMaster (без общего `-S` сокета). |
+| `ssh_no_tty` | bool | `false` | Для `z-panel --ssh=…`: не передавать `ssh -t` (удобно при NOPASSWD sudo). |
+| `language` | строка | `auto` | Явный язык UI (`en`, `ru`, …) или **`auto`** — тогда используются системные **`LANGUAGE`**, **`LC_ALL`**, **`LC_MESSAGES`**, **`LANG`** (без переменных `Z_PANEL_*`). |
 
-Интерактивный **`z-panel config init`** запрашивает: `language`, `table`, `systemd_network_dir`, `default_lan_cidr`, `default_lan_dev`, `default_xray_addr`, `default_xray_peer`, `ufw_marker`, `xray_tun_managed_mark`. Поля **`daemon`**, **`socket_path`**, **`pid_path`**, **`xray_redirect`**, **`schema_version`** в диалоге не спрашиваются — задаются вручную или программно.
+Интерактивный **`z-panel config init`** запрашивает: `language`, `table`, `systemd_network_dir`, `default_lan_cidr`, `default_lan_dev`, `default_xray_addr`, `default_xray_peer`, `ufw_marker`, `xray_tun_managed_mark`. Поля **`daemon`**, **`no_banner`**, **`ssh_no_multiplex`**, **`ssh_no_tty`**, **`socket_path`**, **`pid_path`**, **`xray_redirect`**, **`schema_version`** в диалоге не спрашиваются — задаются вручную или программно.
 
-#### 2.3.3. Переменные окружения (режим процесса, не канон настроек)
+#### 2.3.3. Локаль ОС и `language = auto`
 
-| Переменная | Эффект |
-| ---------- | ------ |
-| `Z_PANEL_LANG` | Язык сообщений при `language=auto` (`internal/i18n`). |
-| `Z_PANEL_NO_BANNER` | Подавить строку `z-panel <version>` в stderr (`main.go`). |
-| `Z_PANEL_SKIP_DAEMON` | Не пересылать команды на Unix-сокет; выполнять локально даже при `daemon=1` (`main.go`; также выставляется при fallback, если daemon недоступен). |
-| `Z_PANEL_SSH_HOST` | Устанавливается при режиме «локальные утилиты по SSH» (`internal/executil/remotessh.go`). |
-| `Z_PANEL_SSH_NO_TTY` | Отключить выделение TTY для SSH (удобно при NOPASSWD sudo). |
-| `Z_PANEL_SSH_MUX` | Включить/настроить мультиплексирование SSH-сессии (`internal/executil/ssh_mux.go`). |
-| `Z_PANEL_SSH_NO_MUX` | Отключить mux даже при наличии хоста. |
+Для **`language = auto`** язык сообщений определяется только стандартными переменными локали процесса: **`LANGUAGE`** (список через `:`), затем **`LC_ALL`**, **`LC_MESSAGES`**, **`LANG`**. Отдельных переменных `Z_PANEL_*` для языка нет.
 
-Флаги **`--ssh=` / `--ssh-connect=`** на корне бинарника задают удалённый режим (`internal/transport`) — это **аргументы**, не TOML.
+Флаги **`--ssh=` / `--ssh-connect=`** на корне бинарника задают удалённый режим (`internal/transport`) — это **аргументы** командной строки, не дубликат `config.toml`.
 
 #### 2.3.4. Снимок `xray-redirect` в `config.toml` (`xray_redirect`, `internal/state`, `internal/settings/xray_redirect.go`)
 
