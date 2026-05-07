@@ -13,8 +13,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 
+	"z-panel/internal/config"
 	"z-panel/internal/settings"
 )
 
@@ -115,7 +117,7 @@ func Serve(ctx context.Context, socketPath string) error {
 	return nil
 }
 
-// RunForeground loads settings, starts the watch loop, and serves the socket until ctx ends.
+// RunForeground loads settings, writes the PID file, starts the watch loop, and serves the socket until ctx ends.
 func RunForeground(ctx context.Context) error {
 	if settings.C == nil {
 		if err := settings.Load(); err != nil {
@@ -123,8 +125,20 @@ func RunForeground(ctx context.Context) error {
 		}
 	}
 	sock := settings.C.SocketPath
+	pidPath := strings.TrimSpace(settings.C.PidPath)
+	if pidPath == "" {
+		pidPath = config.DefaultPidPath
+	}
+	if err := os.MkdirAll(filepath.Dir(pidPath), 0o755); err != nil {
+		return fmt.Errorf("mkdir pid dir: %w", err)
+	}
+	if err := os.WriteFile(pidPath, []byte(fmt.Sprintf("%d\n", os.Getpid())), 0o644); err != nil {
+		return fmt.Errorf("write pid file: %w", err)
+	}
+	defer func() { _ = os.Remove(pidPath) }()
+
 	log.SetPrefix("z-panel: ")
-	log.Printf("daemon listening on %s", sock)
+	log.Printf("daemon listening on %s (pid file %s)", sock, pidPath)
 	wctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	go Loop(wctx)

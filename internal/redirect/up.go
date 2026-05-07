@@ -53,10 +53,6 @@ func Up(iface string, opts UpOptions) error {
 		fmt.Fprintf(os.Stderr, "%s", i18n.T("redirect.no_mark_line"))
 	}
 
-	if err := os.MkdirAll(settings.C.StateDir, 0o750); err != nil {
-		return err
-	}
-
 	// Idempotent: drop duplicate ip rules / routes from earlier runs, then re-apply a single set.
 	removeXrayRedirectPolicyRouting(table, opts.IPv6)
 	removeWGStyleFirewall(iface)
@@ -133,5 +129,9 @@ func Up(iface string, opts UpOptions) error {
 	} else {
 		summary += i18n.T("state.summary_bypass")
 	}
-	return state.WriteAndPrint(st, summary)
+	if err := settings.PersistXrayRedirect(st); err != nil {
+		return err
+	}
+	fmt.Printf(i18n.T("state.up_line"), summary, settings.ConfigPath())
+	return nil
 }

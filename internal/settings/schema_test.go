@@ -16,6 +16,9 @@ func TestEffectiveStoredSchema(t *testing.T) {
 	if EffectiveStoredSchema(2) != 2 {
 		t.Fatal()
 	}
+	if EffectiveStoredSchema(3) != 3 {
+		t.Fatal()
+	}
 }
 
 func TestConfigPath(t *testing.T) {

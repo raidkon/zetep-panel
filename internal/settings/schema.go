@@ -13,7 +13,7 @@ import (
 
 // CurrentSchemaVersion must be incremented whenever new user-facing keys are added
 // to [Cfg] that should be prompted on upgrade. Register the matching step in schemaUpgrades.
-const CurrentSchemaVersion = 2
+const CurrentSchemaVersion = 3
 
 // EffectiveStoredSchema maps on-disk schema_version: 0 / missing → 1 (legacy configs).
 func EffectiveStoredSchema(v int) int {
@@ -26,10 +26,15 @@ func EffectiveStoredSchema(v int) int {
 // schemaUpgrades must contain an entry for every version V with 1 < V <= CurrentSchemaVersion.
 var schemaUpgrades = map[int]func(*Cfg, *bufio.Reader, io.Writer){
 	2: schemaUpgradeV2,
+	3: schemaUpgradeV3,
 }
 
 func schemaUpgradeV2(c *Cfg, r *bufio.Reader, w io.Writer) {
 	c.Language = prompt(r, w, i18n.T("settings.prompt.language"), c.Language)
+}
+
+func schemaUpgradeV3(_ *Cfg, _ *bufio.Reader, _ io.Writer) {
+	// xray-redirect state moved from state_dir JSON files into config.toml [xray_redirect]; merge on Load.
 }
 
 func runSchemaMigration(stdin io.Reader, stdout io.Writer, path string, withIntro bool) error {

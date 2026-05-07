@@ -1,29 +1,25 @@
 package redirect
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
-	"os"
 
 	"z-panel/internal/i18n"
 	"z-panel/internal/root"
+	"z-panel/internal/settings"
 	"z-panel/internal/state"
 )
 
-// Down tears down configuration using the interface state file.
+// Down tears down configuration using persisted state in config.toml (or legacy JSON).
 func Down(iface string) error {
 	if err := root.Require(); err != nil {
 		return err
 	}
-	data, err := os.ReadFile(state.Path(iface))
+	st, err := settings.LoadXrayRedirect(iface)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, settings.ErrNoXrayRedirectState) {
 			return fmt.Errorf(i18n.T("redirect.down_no_state"), iface, iface)
 		}
-		return err
-	}
-	var st state.File
-	if err := json.Unmarshal(data, &st); err != nil {
 		return err
 	}
 	if st.Mode == "wg" || st.Mode == "full" {
@@ -35,7 +31,9 @@ func Down(iface string) error {
 func downWG(st state.File) error {
 	removeWGStyleFirewall(st.Interface)
 	removeXrayRedirectPolicyRouting(st.Table, st.WGIPv6)
-	_ = os.Remove(state.Path(st.Interface))
+	if err := settings.RemoveXrayRedirectEntry(st.Interface); err != nil {
+		return err
+	}
 	fmt.Printf(i18n.T("redirect.down_done"), st.Table, st.Interface)
 	return nil
 }
@@ -43,6 +41,6 @@ func downWG(st state.File) error {
 func downWGQuick(st state.File, ipv6 bool) error {
 	removeWGStyleFirewall(st.Interface)
 	removeXrayRedirectPolicyRouting(st.Table, ipv6)
-	_ = os.Remove(state.Path(st.Interface))
+	_ = settings.RemoveXrayRedirectEntry(st.Interface)
 	return nil
 }
