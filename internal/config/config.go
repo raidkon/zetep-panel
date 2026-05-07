@@ -14,4 +14,6 @@ const (
 
 	// DefaultSocketPath is the Unix socket for the z-panel daemon (HTTP API + command execution).
 	DefaultSocketPath = "/run/z-panel/z-panel.sock"
+	// DefaultPidPath is the daemon PID file (runtime only; not part of config semantics beyond path).
+	DefaultPidPath = "/run/z-panel/z-panel.pid"
 )

@@ -49,7 +49,7 @@ Important fields include:
 
 - **`language`** — UI language: `auto` or one of `en`, `zh`, `hi`, `es`, `fr`, `ar`, `bn`, `pt`, `ru`, `ur`
 - **`schema_version`** — managed by the program; older configs trigger **`z-panel config migrate`** (or migration during `install`)
-- Routing table / fwmark, state directory, UFW templates, Xray TUN defaults — see interactive `config init`
+- Routing table / fwmark, UFW templates, Xray TUN defaults — see interactive `config init` (single `config.toml`; `xray-redirect` state is stored there too)
 
 Environment overrides for language when `language = auto`: `Z_PANEL_LANG`, `LANGUAGE`, `LC_ALL`, `LC_MESSAGES`, `LANG`.
 

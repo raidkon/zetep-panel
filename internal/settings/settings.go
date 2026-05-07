@@ -14,12 +14,12 @@ import (
 	"z-panel/internal/config"
 	"z-panel/internal/i18n"
 	"z-panel/internal/root"
+	"z-panel/internal/state"
 )
 
 // Cfg is stored in config.toml.
 type Cfg struct {
 	Table              string `toml:"table"`
-	StateDir           string `toml:"state_dir"`
 	SystemdNetworkDir  string `toml:"systemd_network_dir"`
 	UfwMarker          string `toml:"ufw_marker"`
 	XrayTunManagedMark string `toml:"xray_tun_managed_mark"`
@@ -29,6 +29,10 @@ type Cfg struct {
 	DefaultXrayPeer    string `toml:"default_xray_peer"`
 	// SocketPath: Unix socket for daemon IPC (empty → default in /run/z-panel/).
 	SocketPath string `toml:"socket_path"`
+	// PidPath: daemon PID file (empty → config.DefaultPidPath). Not used for non-daemon commands.
+	PidPath string `toml:"pid_path"`
+	// XrayRedirect: persisted snapshot per interface for xray-redirect (single-file config principle).
+	XrayRedirect map[string]state.File `toml:"xray_redirect,omitempty"`
 	// Daemon: 1 = when the daemon is running, run subcommands via it; 0 = always run locally.
 	Daemon int `toml:"daemon"`
 	// Language: auto (use locale / Z_PANEL_LANG), en, or ru.
@@ -43,7 +47,6 @@ var C *Cfg
 func defaults() Cfg {
 	return Cfg{
 		Table:              "51843",
-		StateDir:           filepath.Join(config.ConfigDir, "state"),
 		SystemdNetworkDir:  "/etc/systemd/network",
 		UfwMarker:          "z-panel",
 		XrayTunManagedMark: "# z-panel-managed",
@@ -52,6 +55,7 @@ func defaults() Cfg {
 		DefaultXrayAddr:    "10.252.0.1/30",
 		DefaultXrayPeer:    "10.252.0.2/30",
 		SocketPath:         config.DefaultSocketPath,
+		PidPath:            config.DefaultPidPath,
 		Daemon:             0,
 		Language:           "auto",
 		SchemaVersion:      0,
@@ -66,6 +70,8 @@ func Load() error {
 	if err != nil {
 		if os.IsNotExist(err) {
 			c := base
+			normalize(&c)
+			mergeLegacyStateFiles(&c)
 			C = &c
 			return nil
 		}
@@ -75,6 +81,7 @@ func Load() error {
 		return fmt.Errorf(i18n.T("settings.err.parse"), path, err)
 	}
 	normalize(&base)
+	mergeLegacyStateFiles(&base)
 	C = &base
 	return nil
 }
@@ -83,9 +90,6 @@ func normalize(c *Cfg) {
 	d := defaults()
 	if strings.TrimSpace(c.Table) == "" {
 		c.Table = d.Table
-	}
-	if strings.TrimSpace(c.StateDir) == "" {
-		c.StateDir = d.StateDir
 	}
 	if strings.TrimSpace(c.SystemdNetworkDir) == "" {
 		c.SystemdNetworkDir = d.SystemdNetworkDir
@@ -110,6 +114,9 @@ func normalize(c *Cfg) {
 	}
 	if strings.TrimSpace(c.SocketPath) == "" {
 		c.SocketPath = d.SocketPath
+	}
+	if strings.TrimSpace(c.PidPath) == "" {
+		c.PidPath = d.PidPath
 	}
 	if c.Daemon != 0 {
 		c.Daemon = 1
@@ -202,7 +209,6 @@ func InitInteractive(stdin io.Reader, stdout io.Writer, force bool) error {
 	i18n.ApplyFromConfig(d.Language)
 
 	d.Table = prompt(r, stdout, i18n.T("settings.prompt.table"), d.Table)
-	d.StateDir = prompt(r, stdout, i18n.T("settings.prompt.state_dir"), d.StateDir)
 	d.SystemdNetworkDir = prompt(r, stdout, i18n.T("settings.prompt.systemd_network"), d.SystemdNetworkDir)
 	d.DefaultLANCIDR = prompt(r, stdout, i18n.T("settings.prompt.lan_cidr"), d.DefaultLANCIDR)
 	d.DefaultLANDev = prompt(r, stdout, i18n.T("settings.prompt.lan_dev"), d.DefaultLANDev)

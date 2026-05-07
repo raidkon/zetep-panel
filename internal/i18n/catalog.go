@@ -84,7 +84,6 @@ config [help] migrate
 		"settings.init_intro":  "z-panel setup — type a value or press Enter for the default.",
 		"settings.saved":       "\nsaved: %s\n",
 		"settings.prompt.table":           "Routing table / fwmark ID",
-		"settings.prompt.state_dir":       "State directory (JSON), usually next to config",
 		"settings.prompt.systemd_network": "systemd-networkd unit directory",
 		"settings.prompt.lan_cidr":        "UFW template: LAN CIDR",
 		"settings.prompt.lan_dev":         "UFW template: LAN interface",
@@ -253,7 +252,7 @@ xray-tun [help] down <interfaceName> ip
 		"redirect.err.wan_rule":        "ip rule (from WAN, lookup main): %v",
 
 		"state.state_file_err": "state file: %w",
-		"state.up_line":        "up: %s (state %s)\n",
+		"state.up_line":        "up: %s (saved in %s)\n",
 		"state.summary_base":   "mode=%s table=%s fwmark=%s (wg-quick style) default dev %s",
 		"state.summary_nomark": " no_bypass_mark=1",
 		"state.summary_bypass": " bypass_cgroup=1",
@@ -367,7 +366,6 @@ config [help] migrate
 		"settings.init_intro":  "Настройка z-panel — введите значение или Enter для значения по умолчанию.",
 		"settings.saved":       "\nсохранено: %s\n",
 		"settings.prompt.table":           "Таблица маршрутизации и fwmark",
-		"settings.prompt.state_dir":       "Каталог state (JSON), обычно рядом с конфигом",
 		"settings.prompt.systemd_network": "Каталог unit-файлов systemd-networkd",
 		"settings.prompt.lan_cidr":        "UFW шаблон: LAN CIDR",
 		"settings.prompt.lan_dev":         "UFW шаблон: интерфейс LAN",
@@ -536,7 +534,7 @@ xray-tun [help] down <interfaceName> ip
 		"redirect.err.wan_rule":        "ip rule (from WAN, lookup main): %v",
 
 		"state.state_file_err": "файл состояния: %w",
-		"state.up_line":        "up: %s (state %s)\n",
+		"state.up_line":        "up: %s (сохранено в %s)\n",
 		"state.summary_base":   "mode=%s table=%s fwmark=%s (wg-quick-стиль) default dev %s",
 		"state.summary_nomark": " no_bypass_mark=1",
 		"state.summary_bypass": " bypass_cgroup=1",

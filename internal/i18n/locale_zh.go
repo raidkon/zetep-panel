@@ -74,7 +74,6 @@ config [help] migrate
 		"settings.init_intro":             "z-panel 设置 — 输入值或按 Enter 使用默认值。",
 		"settings.saved":                  "\n已保存：%s\n",
 		"settings.prompt.table":           "路由表 / fwmark ID",
-		"settings.prompt.state_dir":       "state 目录（JSON），通常在配置旁",
 		"settings.prompt.systemd_network": "systemd-networkd 单元目录",
 		"settings.prompt.lan_cidr":        "UFW 模板：LAN CIDR",
 		"settings.prompt.lan_dev":         "UFW 模板：LAN 网卡",
@@ -234,7 +233,7 @@ xray-tun [help] down <interfaceName> ip
 		"redirect.auto_fail":         "无法自动检测单元（已试 %v）：%w；请设置 --bypass-unit=… 或 --bypass-cgroup=…",
 
 		"state.state_file_err": "state 文件：%w",
-		"state.up_line":        "up：%s（state %s）\n",
+		"state.up_line":        "up：%s（已写入 %s）\n",
 		"state.summary_base":   "mode=%s table=%s fwmark=%s（wg-quick 风格）default dev %s",
 		"state.summary_nomark": " no_bypass_mark=1",
 		"state.summary_bypass": " bypass_cgroup=1",

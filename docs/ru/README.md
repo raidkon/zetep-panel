@@ -43,7 +43,7 @@ z-panel --ssh=user@host install
 
 - **`language`** — язык интерфейса: `auto` или один из `en`, `zh`, `hi`, `es`, `fr`, `ar`, `bn`, `pt`, `ru`, `ur`
 - **`schema_version`** — ведётся программой; при устаревшей схеме потребуется **`z-panel config migrate`** (или миграция при `install`)
-- Таблицы маршрутизации, fwmark, каталог состояния, шаблоны UFW, параметры Xray TUN — см. интерактивный `config init`
+- Таблицы маршрутизации, fwmark, шаблоны UFW, параметры Xray TUN — см. интерактивный `config init` (один `config.toml`; снимок `xray-redirect` тоже в нём)
 
 Переопределение языка при `language = auto`: переменные окружения `Z_PANEL_LANG`, `LANGUAGE`, `LC_ALL`, `LC_MESSAGES`, `LANG`.
 
